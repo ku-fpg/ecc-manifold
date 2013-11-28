@@ -1,4 +1,4 @@
-module FEC.Types where
+module EEC.Types where
 
 import Data.Bit
 
@@ -11,7 +11,7 @@ type Rate               = Rational     -- message size / codeword size
 -- > Law: (encode >>= fmap soft >>= decode) == return
 --
 
-data FEC m = FEC
+data EEC m = EEC
      { encode          :: [Bit]       	-> m [Bit]
         -- ^ encoded a 'MessageLength' list of bits into a 'CodewordLength' set of bits.
      , decode          :: [Double] 	-> m [Bit]
