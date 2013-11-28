@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module ECC.BPSK where
 
 import Data.Bit
@@ -9,8 +10,9 @@ import Data.Char (isDigit)
 
 mkBPSK :: Int -> ECC
 mkBPSK n = ECC
-        { encode   = return
-        , decode   = return . fmap mkBit . fmap (>= 0)
+        { name     = "bspk/" ++ show n
+        , encode   = return
+        , decode   = return . (,True) . fmap mkBit . fmap (>= 0)
         , message_length  = n
         , codeword_length = n
         }

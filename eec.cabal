@@ -19,13 +19,26 @@ library
                 ECC.Utils
 
   build-depends:
-                base            == 4.6.*
+                array           == 0.4.*,
+                base            == 4.6.*,
+                mtl             == 2.1.*,
+                mwc-random      == 0.13.*,
+                statistics      == 0.10.*,
+                vector          == 0.10.*
+
   main-is: main/Main.hs
   hs-source-dirs:      src
 
 executable ecc-tester
-  build-depends:       base ==4.6.*, ecc==0.1.0
+  build-depends:
+                array           == 0.4.*,
+                base            == 4.6.*,
+                mtl             == 2.1.*,
+                mwc-random      == 0.13.*,
+                statistics      == 0.10.*,
+                vector          == 0.10.*,
+                ecc==0.1.0
   main-is: Main.hs
   hs-source-dirs: src, main
-  Ghc-options: -O2
+  Ghc-options: -O2 -threaded 
 

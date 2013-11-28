@@ -9,4 +9,6 @@ import qualified ECC.BPSK as BPSK
 -- ["min_array","moon",ns]
 
 main :: IO ()
-main = eccTester (Options ["bpsk/16"] 0) (BPSK.code)
+main = do
+  xss <- eccTester (Options ["bpsk/16"] [2,4,6,8,10] 1) (BPSK.code)
+  print xss
