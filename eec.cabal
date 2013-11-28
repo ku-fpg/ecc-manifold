@@ -1,0 +1,31 @@
+name:                ecc
+version:             0.1.0
+-- synopsis:
+-- description:
+license:             BSD3
+license-file:        LICENSE
+author:              Andy Gill
+maintainer:          Andy Gill <andygill@ku.edu>
+copyright:           (C) 2013 The University of Kansas
+category:            Codec
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  exposed-modules:
+                Data.Bit,
+                ECC.BPSK,
+                ECC.Types,
+                ECC.Utils
+
+  build-depends:
+                base            == 4.6.*
+  main-is: main/Main.hs
+  hs-source-dirs:      src
+
+executable ecc-tester
+  build-depends:       base ==4.6.*, ecc==0.1.0
+  main-is: Main.hs
+  hs-source-dirs: src, main
+  Ghc-options: -O2
+
