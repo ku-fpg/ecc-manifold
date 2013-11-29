@@ -5,8 +5,8 @@ import ECC.Types
 import ECC.Utils
 import Data.Monoid
 
-import qualified ECC.BPSK as BPSK
-import qualified ECC.Repetition as Repetition
+import qualified ECC.Code.BPSK as BPSK
+import qualified ECC.Code.Repetition as Repetition
 
 -- code/codename/4
 -- moon/min_array/4

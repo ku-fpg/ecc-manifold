@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module ECC.BPSK where
+module ECC.Code.BPSK where
 
 import Data.Bit
 import ECC.Types

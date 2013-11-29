@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module ECC.Repetition where
+module ECC.Code.Repetition where
 
 import Data.Bit
 import ECC.Types

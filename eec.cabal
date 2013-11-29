@@ -14,7 +14,8 @@ cabal-version:       >=1.8
 library
   exposed-modules:
                 Data.Bit,
-                ECC.BPSK,
+                ECC.Code.BPSK,
+                ECC.Code.Repetition,
                 ECC.Types,
                 ECC.Utils
 
