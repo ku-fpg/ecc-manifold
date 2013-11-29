@@ -22,6 +22,13 @@ data Options = Options
         , verbose   :: Int
         }
 
+eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
+eccPrinter eccs ebN0s = do
+          -- here is where we would setup any fancy output
+          return $ \  ecc ebN0 bes -> do
+                  print (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
+                  return $ sizeBEs bes > 1000 && sumBEs bes > 1000
+
 -- eccTester :: Options -> Code -> IO [(String,[(EbN0,Int,Int,Estimate)])]
 eccTester :: Options -> Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccTester opts (Code f) k = do
