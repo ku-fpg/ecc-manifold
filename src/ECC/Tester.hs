@@ -15,6 +15,7 @@ import System.Random.MWC.Distributions
 import Data.Monoid
 import Data.Array.Matrix
 import Statistics.Resampling.Bootstrap
+import System.IO
 
 data Options = Options
         { codenames :: [String]
@@ -26,8 +27,12 @@ eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
 eccPrinter eccs ebN0s =
           -- here is where we would setup any fancy output
           return $ \  ecc ebN0 bes -> do
-                  print (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
-                  return $ sizeBEs bes > 1000 && sumBEs bes > 1000
+                  putStr $ show (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
+                  let accept = sumBEs bes > 1000
+                  putStrLn $ " " ++ if accept then " accepted." else " continuting;"
+                  hFlush stdout
+                  return accept
+
 
 -- eccTester :: Options -> Code -> IO [(String,[(EbN0,Int,Int,Estimate)])]
 eccTester :: Options -> Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
@@ -133,7 +138,6 @@ runECC verb gen ebN0 ecc = do
 txRx_EbN0 :: EbN0 -> Rate -> GenIO -> [Bit] -> IO [Double]
 txRx_EbN0 ebnoDB rate gen xs = do
         rs :: [Double]  <- sequence [ standard gen | _ <- xs ]
-        print rs
         return $ zipWith (+) (fmap (* sqrt sigma2) rs)
                              (fmap (* sqrt ec)
                                 $ fmap (\ x -> if getBit x then 1 else -1)
