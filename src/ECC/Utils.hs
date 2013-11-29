@@ -1,4 +1,4 @@
-module ECC.Utils (rateOf, hard, soft, nintyFifth) where
+module ECC.Utils (rateOf, hard, soft, bitErrorRate, nintyFifth) where
 
 import ECC.Types
 import Data.Bit
@@ -18,6 +18,9 @@ hard = mkBit . (> 0)
 soft :: (Num a) => Bit -> a
 soft 0 = -1
 soft 1 = 1
+
+bitErrorRate :: ECC -> BEs -> Double
+bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))
 
 nintyFifth :: GenIO -> MessageLength -> BEs -> IO Estimate
 nintyFifth g m_len (BEs xs) = do

@@ -46,6 +46,11 @@ sizeBEs :: BEs -> Int
 sizeBEs (BEs xs) = sum xs
 
 
+-- Build n buckets for the BEs.
+-- Assumes that sumBEs bes % n == 0
+sampleBEs :: Int -> BEs -> [Double]
+sampleBEs n bes = []
+
 eventBEs :: Int -> BEs
 eventBEs n = BEs $ take n (repeat 0) ++ [1]
 

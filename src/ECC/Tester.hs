@@ -17,34 +17,37 @@ import Data.Array.Matrix
 import Statistics.Resampling.Bootstrap
 
 data Options = Options
-        { codes   :: [String]
-        , ebN0s   :: [EbN0]
-        , verbose :: Int
+        { codenames :: [String]
+        , ebN0s     :: [EbN0]
+        , verbose   :: Int
         }
 
-eccTester :: Options -> Code -> IO [(String,[(EbN0,Int,Int,Estimate)])]
-eccTester opts (Code f) = do
+-- eccTester :: Options -> Code -> IO [(String,[(EbN0,Int,Int,Estimate)])]
+eccTester :: Options -> Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccTester opts (Code f) k = do
    let debug n msg | n <= verbose opts  = putStrLn msg
                    | otherwise  = return ()
    gen :: GenIO <- withSystemRandom $ asGenIO return
    print "eccTester"
-   let eccs = concatMap f (map splitCodename (codes opts))
-   sequence
-          [ do xs <- sequence
-                [ do bers <- testECC (verbose opts) ebN0 ecc
+   let eccs = concatMap f (map splitCodename (codenames opts))
+   k2 <- k eccs (ebN0s opts)
+   sequence_
+          [ sequence_
+                [ do testECC (verbose opts) ebN0 ecc k2
+{-
                      debug 1 $ "found " ++ show (sumBEs bers) ++ " bit errors"
                      est <- nintyFifth gen (message_length ecc) bers
                      debug 1 $ "Est. BER = " ++ show (estPoint est)
                      return (ebN0,sizeBEs bers,sumBEs bers,est)
+-}
                 | ebN0 <- ebN0s opts
                 ]
-               return (name ecc,xs)
           | ecc <- eccs
           ]
 
 -- Running a *multi* run of an ECC, giving a single ECCReport
-testECC :: Int -> EbN0 -> ECC -> IO BEs
-testECC verb ebN0 ecc = do
+testECC :: Int -> EbN0 -> ECC -> (ECC -> EbN0 -> BEs -> IO Bool) -> IO ()
+testECC verb ebN0 ecc k = do
    let debug n msg | n <= verb  = putStrLn msg
                    | otherwise  = return ()
 
@@ -52,18 +55,19 @@ testECC verb ebN0 ecc = do
    -- once for now
 
    let loop !n !bes = do
-        debug 1 $ "trying " ++ show n ++ " messages"
-        bes1 <- foldM (\ !a !_ -> do bes0 <- runECC verb gen ebN0 ecc
-                                     return $ a <> bes0) bes [1..n]
-        let errs = sumBEs bes1
-        debug 1 $ "found " ++ show errs ++ " so far"
-        if errs < 1000 -- Perrins limit
-         then loop (n * 2) bes1
-         else return bes1
-   -- do 1 initial run, so that the total runs are a power of 2
+        -- first, see if it is good enough
+        okay <- k ecc ebN0 bes
+        if okay then return () else do
+                debug 1 $ "trying " ++ show n ++ " messages"
+                bes1 <- foldM (\ !a !_ -> do bes0 <- runECC verb gen ebN0 ecc
+                                             return $ a <> bes0) bes [1..n]
+                let errs = sumBEs bes1
+                debug 1 $ "found " ++ show errs ++ " so far"
+                loop (n * 2) bes1
+
+   -- do 1 initial run (so that the total runs are a power of 2)
    bes0 <- runECC verb gen ebN0 ecc
-   bes <- loop 1 bes0
-   return $ bes -- undefined -- [ fromIntegral x / fromIntegral (message_length ecc) | x <- xs ]
+   loop 1 bes0
 
 splitCodename :: String -> [String]
 splitCodename = words . map (\ c -> if c == '/' then ' ' else c)
