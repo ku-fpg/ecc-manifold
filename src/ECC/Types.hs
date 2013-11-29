@@ -25,7 +25,7 @@ data ECC = ECC
         -- ^ encoded a 'MessageLength' list of bits into a 'CodewordLength' set of bits.
      , decode          :: [Double] 	-> IO ([Bit],Bool)
         -- ^ decoding a codeword into a message,
-        --  along with a parity flag (False = parity, True = bad parity or unknown parity)
+        --  along with a parity flag (True = parity or unknown (assume good), False = bad parity)
      , message_length  :: MessageLength   -- length of v
      , codeword_length :: CodewordLength  -- length of w
      }

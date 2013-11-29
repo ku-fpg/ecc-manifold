@@ -23,7 +23,7 @@ data Options = Options
         }
 
 eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
-eccPrinter eccs ebN0s = do
+eccPrinter eccs ebN0s =
           -- here is where we would setup any fancy output
           return $ \  ecc ebN0 bes -> do
                   print (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
@@ -109,16 +109,37 @@ runECC verb gen ebN0 ecc = do
 
   return $ eventBEs bitErrorCount
 
+{-
+
+    Sigma2 = max(( 1/10^(EbNoDB(jj)/10) )/2, 1e-9);
+    Lc    = 2*sqrt(Ec)/Sigma2;
+
+    for ii=1:NumBlocks(jj)
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        Bits = 0.5 >= rand(1,k);
+        CodedBits = mod(Bits*G,2);
+
+        % Modulate the CodedBits
+        s     = sqrt(Ec)*(2*CodedBits - 1);
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        % AWGN channel
+        noise  = sqrt(Sigma2)*randn(size(s));
+        r(1:n) = s + noise;
+-}
+
 -- Adding randomness
-txRx_EbN0 :: EbN0 -> Rational -> GenIO -> [Bit] -> IO [Double]
+txRx_EbN0 :: EbN0 -> Rate -> GenIO -> [Bit] -> IO [Double]
 txRx_EbN0 ebnoDB rate gen xs = do
-        rs :: [Double]  <- sequence [ standard gen | _ <- [1..length xs] ]
-        return $ map (* lc)
-               $ zipWith (+) (fmap (* sqrt sigma2) rs)
+        rs :: [Double]  <- sequence [ standard gen | _ <- xs ]
+        print rs
+        return $ zipWith (+) (fmap (* sqrt sigma2) rs)
                              (fmap (* sqrt ec)
                                 $ fmap (\ x -> if getBit x then 1 else -1)
                                 $ xs)
      where
          sigma2 = ((1/10) ** (ebnoDB/10)) / 2
-         ec = fromRational rate
-         lc = 2 * sqrt ec / sigma2
+         ec     = fromRational rate
+         lc     = 2 * sqrt ec / sigma2
+
