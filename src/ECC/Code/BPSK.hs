@@ -18,5 +18,5 @@ mkBPSK = ECC
 
 code :: Code
 code = Code $ \ xs -> case xs of
-                        ["bpsk"]                   -> [mkBPSK]        -- the default
-                        _                          -> []
+                        ["bpsk"]                   -> return [mkBPSK]        -- the default
+                        _                          -> return []

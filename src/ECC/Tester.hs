@@ -39,7 +39,12 @@ eccTester opts (Code f) k = do
                    | otherwise  = return ()
    gen :: GenIO <- withSystemRandom $ asGenIO return
    print "eccTester"
-   let eccs = concatMap f (map splitCodename (codenames opts))
+   eccs <- liftM concat
+            $ sequence
+            $ map f
+            $ map splitCodename
+            $ codenames opts
+
    k2 <- k eccs (ebN0s opts)
    sequence_
           [ sequence_

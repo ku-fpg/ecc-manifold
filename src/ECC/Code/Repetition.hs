@@ -19,7 +19,7 @@ mkRepetition n = ECC
 
 code :: Code
 code = Code $ \ xs -> case xs of
-                        ["repetition",n] | all isDigit n -> [mkRepetition (read n)]
-                        _                                -> []
+                        ["repetition",n] | all isDigit n -> return [mkRepetition (read n)]
+                        _                                -> return []
 
 

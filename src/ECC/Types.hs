@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
 module ECC.Types where
 
+import Control.Monad
 import Data.Bit
 import Data.Monoid
 
@@ -42,11 +43,11 @@ rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length e
 -----------------------------------------------------------------------------
 -- Regarding Code
 
-data Code = Code ([String] -> [ECC])
+data Code = Code ([String] -> IO [ECC])
 
 instance Monoid Code where
-  mempty = Code $ \ _ -> []
-  mappend (Code f1) (Code f2) = Code $ \ xs -> f1 xs ++ f2 xs
+  mempty = Code $ \ _ -> return []
+  mappend (Code f1) (Code f2) = Code $ \ xs -> liftM2 (++) (f1 xs) (f2 xs)
 
 -----------------------------------------------------------------------------
 -- Regarding Bit Errors (BEs)
