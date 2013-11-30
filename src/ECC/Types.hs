@@ -43,11 +43,14 @@ rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length e
 -----------------------------------------------------------------------------
 -- Regarding Code
 
-data Code = Code ([String] -> IO [ECC])
+data Code = Code [String] ([String] -> IO [ECC])
+
+instance Show Code where
+        show (Code codes _) = show codes
 
 instance Monoid Code where
-  mempty = Code $ \ _ -> return []
-  mappend (Code f1) (Code f2) = Code $ \ xs -> liftM2 (++) (f1 xs) (f2 xs)
+  mempty = Code [] $ \ _ -> return []
+  mappend (Code c1 f1) (Code c2 f2) = Code (c1 ++ c2) $ \ xs -> liftM2 (++) (f1 xs) (f2 xs)
 
 -----------------------------------------------------------------------------
 -- Regarding Bit Errors (BEs)

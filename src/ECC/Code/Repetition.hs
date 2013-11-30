@@ -18,7 +18,8 @@ mkRepetition n = ECC
         }
 
 code :: Code
-code = Code $ \ xs -> case xs of
+code = Code ["repetition/<n>"]
+     $ \ xs -> case xs of
                         ["repetition",n] | all isDigit n -> return [mkRepetition (read n)]
                         _                                -> return []
 

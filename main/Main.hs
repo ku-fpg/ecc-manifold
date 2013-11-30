@@ -11,8 +11,9 @@ import qualified ECC.Code.Repetition as Repetition
 -- moon/min_array/4
 -- ["min_array","moon",ns]
 
+codes :: Code
 codes = BPSK.code <> Repetition.code
 
+-- usage: ./Main 0 2 4 6 8 0  bpsk repetition/3
 main :: IO ()
-main = do
-  eccTester (Options ["bpsk","repetition/3"] [0,2,4,6,8,10] 0) codes eccPrinter
+main = eccMain codes eccPrinter

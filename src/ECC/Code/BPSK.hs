@@ -17,6 +17,7 @@ mkBPSK = ECC
         }
 
 code :: Code
-code = Code $ \ xs -> case xs of
+code = Code ["bpsk"]
+     $ \ xs -> case xs of
                         ["bpsk"]                   -> return [mkBPSK]        -- the default
                         _                          -> return []

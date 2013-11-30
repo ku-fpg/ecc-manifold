@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
-module ECC.Tester where
+module ECC.Tester (eccMain, eccTester, eccPrinter) where
 
 import ECC.Types
 import System.Random.MWC
@@ -14,12 +14,32 @@ import System.Random.MWC.Distributions
 import Data.Monoid
 import Statistics.Resampling.Bootstrap
 import System.IO
+import Data.Char
+import System.Environment
 
 data Options = Options
         { codenames :: [String]
         , ebN0s     :: [EbN0]
         , verbose   :: Int
-        }
+        } deriving Show
+
+eccMain :: Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccMain code k = do
+        args <- getArgs
+        if null args
+         then error $ "usage: <name> [-v<n>] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
+                   ++ "\ncodes: " ++ show code
+         else eccTester (parseOptions args) code k
+
+parseOptions :: [String] -> Options
+parseOptions (['-','v',n]:rest) | isDigit n = (parseOptions rest) { verbose = read [n] }
+parseOptions (arg:rest) =
+        case reads arg of
+          [(ebN0::EbN0,"")] -> opts { ebN0s = ebN0 : ebN0s opts }
+          _                 -> opts { codenames = arg : codenames opts }
+  where
+     opts = parseOptions rest
+parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0 }
 
 eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
 eccPrinter eccs ebN0s =
@@ -34,7 +54,7 @@ eccPrinter eccs ebN0s =
 
 -- eccTester :: Options -> Code -> IO [(String,[(EbN0,Int,Int,Estimate)])]
 eccTester :: Options -> Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
-eccTester opts (Code f) k = do
+eccTester opts (Code _ f) k = do
    let debug n msg | n <= verbose opts  = putStrLn msg
                    | otherwise  = return ()
    gen :: GenIO <- withSystemRandom $ asGenIO return
