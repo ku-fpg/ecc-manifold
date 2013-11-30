@@ -1,6 +1,6 @@
 name:                ecc-manifold
 version:             0.1.0
-synopsis:            Framework for testing Error Checking Codes.
+synopsis:            Framework for testing Error Correcting Codes.
 description:         Support for testing ECCs, including some data structures 
                      commonly uses, like bit matrixes.
 license:             BSD3
@@ -17,8 +17,8 @@ library
                 Data.Bit,
                 ECC.Code.BPSK,
                 ECC.Code.Repetition,
-                ECC.Types,
-                ECC.Utils
+                ECC.Estimate,
+                ECC.Types
 
   build-depends:
                 array           == 0.4.*,

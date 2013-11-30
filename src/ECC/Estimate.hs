@@ -1,4 +1,4 @@
-module ECC.Utils (rateOf, hard, soft, bitErrorRate, nintyFifth) where
+module ECC.Estimate (estimate) where
 
 import ECC.Types
 import Data.Bit
@@ -9,25 +9,18 @@ import Statistics.Resampling.Bootstrap (bootstrapBCA, Estimate(..) )
 import System.Random.MWC (create)
 import System.Random.MWC
 
-rateOf :: ECC -> Rational
-rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length ecc)
+-- Estimate the lower and upper bounds, given a random generator state,
+-- a confidence percentage, and a Bit Errors structure.
 
-hard :: (Num a, Ord a) => a -> Bit
-hard = mkBit . (> 0)
+-- If there are to many samples (as often happens with good error correcting codes),
+-- then we cheat, and combine samples.
 
-soft :: (Num a) => Bit -> a
-soft 0 = -1
-soft 1 = 1
-
-bitErrorRate :: ECC -> BEs -> Double
-bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))
-
-nintyFifth :: GenIO -> MessageLength -> BEs -> IO Estimate
-nintyFifth g m_len (BEs xs) = do
+estimate :: GenIO -> Double -> MessageLength -> BEs -> IO Estimate
+estimate g confidence m_len (BEs xs) = do
           resamples <- resample g [mean] 10000 sampleU -- (length sample^2) sampleU
 --          print $ U.length $ fromResample $ head $ resamples
 --          print resamples
-          return $ head $ bootstrapBCA 0.95 sampleU [mean] resamples
+          return $ head $ bootstrapBCA confidence sampleU [mean] resamples
   where
     -- We assume there is a power of 2 size, for the shrinking to work
     sample = head
@@ -40,7 +33,7 @@ nintyFifth g m_len (BEs xs) = do
     sampleU = U.fromList sample
 
 
---combine :: (Num a) => [a] -> [a]
-combine (x:y:xs) = ((x + y) / 2) : combine xs
-combine xs = xs
+    --combine :: (Num a) => [a] -> [a]
+    combine (x:y:xs) = ((x + y) / 2) : combine xs
+    combine xs = xs
 

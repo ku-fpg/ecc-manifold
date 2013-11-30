@@ -2,7 +2,6 @@ module Main where
 
 import ECC.Tester
 import ECC.Types
-import ECC.Utils
 import Data.Monoid
 
 import qualified ECC.Code.BPSK as BPSK
@@ -16,4 +15,4 @@ codes = BPSK.code <> Repetition.code
 
 main :: IO ()
 main = do
-  eccTester (Options ["bpsk","repetition/3"] [0,2,4] 0) codes eccPrinter
+  eccTester (Options ["bpsk","repetition/3"] [0,2,4,6,8,10] 0) codes eccPrinter

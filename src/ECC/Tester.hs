@@ -2,7 +2,6 @@
 module ECC.Tester where
 
 import ECC.Types
-import ECC.Utils
 import System.Random.MWC
 import Data.Bit
 import Control.Monad

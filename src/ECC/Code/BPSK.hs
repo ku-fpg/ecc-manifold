@@ -3,7 +3,6 @@ module ECC.Code.BPSK where
 
 import Data.Bit
 import ECC.Types
-import ECC.Utils
 import Data.Char (isDigit)
 
 -- Simple BSPK encode/decode.

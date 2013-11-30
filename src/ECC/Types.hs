@@ -4,10 +4,16 @@ module ECC.Types where
 import Data.Bit
 import Data.Monoid
 
+-----------------------------------------------------------------------------
+-- Regarding Common Synomyns
+
 type MessageLength      = Int          -- the size of the message
 type CodewordLength     = Int          -- the size of the message + parity bits
 type Rate               = Rational     -- message size / codeword size
 type EbN0               = Double       -- noise
+
+-----------------------------------------------------------------------------
+-- Regarding ECC
 
 -- Basic structure of an forward error-checking code.
 --
@@ -30,6 +36,11 @@ data ECC = ECC
      , codeword_length :: CodewordLength  -- length of w
      }
 
+rateOf :: ECC -> Rational
+rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length ecc)
+
+-----------------------------------------------------------------------------
+-- Regarding Code
 
 data Code = Code ([String] -> [ECC])
 
@@ -37,25 +48,9 @@ instance Monoid Code where
   mempty = Code $ \ _ -> []
   mappend (Code f1) (Code f2) = Code $ \ xs -> f1 xs ++ f2 xs
 
--- The total numbers of bit errors
-sumBEs :: BEs -> Int
-sumBEs (BEs xs) = sum [ n * i | (n,i) <- xs `zip` [0..]]
+-----------------------------------------------------------------------------
+-- Regarding Bit Errors (BEs)
 
--- The number of samples
-sizeBEs :: BEs -> Int
-sizeBEs (BEs xs) = sum xs
-
-
--- Build n buckets for the BEs.
--- Assumes that sumBEs bes % n == 0
-sampleBEs :: Int -> BEs -> [Double]
-sampleBEs n bes = []
-
-eventBEs :: Int -> BEs
-eventBEs n = BEs $ take n (repeat 0) ++ [1]
-
--- for +ve ints
-prop_ECCBERS (xs :: [Int]) = sum xs == sumBEs (mconcat (map eventBEs xs))
 
 data BEs = BEs ![Int]
         deriving Show
@@ -69,3 +64,36 @@ instance Monoid BEs where
                 f []     ys     = ys
 
                 cons !x !ys = x : ys
+
+
+-- The total numbers of bit errors
+sumBEs :: BEs -> Int
+sumBEs (BEs xs) = sum [ n * i | (n,i) <- xs `zip` [0..]]
+
+-- The number of samples
+sizeBEs :: BEs -> Int
+sizeBEs (BEs xs) = sum xs
+
+-- Build n buckets for the BEs.
+-- Assumes that sumBEs bes % n == 0
+sampleBEs :: Int -> BEs -> [Double]
+sampleBEs n bes = []
+
+eventBEs :: Int -> BEs
+eventBEs n = BEs $ take n (repeat 0) ++ [1]
+
+-- for +ve ints
+prop_ECCBERS (xs :: [Int]) = sum xs == sumBEs (mconcat (map eventBEs xs))
+
+-----------------------------------------------------------------------------
+-- Regarding Bit.
+
+hard :: (Num a, Ord a) => a -> Bit
+hard = mkBit . (> 0)
+
+soft :: (Num a) => Bit -> a
+soft 0 = -1
+soft 1 = 1
+
+bitErrorRate :: ECC -> BEs -> Double
+bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))
