@@ -1,4 +1,4 @@
-module Data.Array.Matrix where
+module Data.Matrix.Array where
 
 import Data.Array
 import Data.List

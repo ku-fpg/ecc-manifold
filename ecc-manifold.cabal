@@ -1,7 +1,8 @@
-name:                ecc
+name:                ecc-manifold
 version:             0.1.0
--- synopsis:
--- description:
+synopsis:            Framework for testing Error Checking Codes.
+description:         Support for testing ECCs, including some data structures 
+                     commonly uses, like bit matrixes.
 license:             BSD3
 license-file:        LICENSE
 author:              Andy Gill
@@ -30,7 +31,7 @@ library
   main-is: main/Main.hs
   hs-source-dirs:      src
 
-executable ecc-tester
+executable ecc-manifold-tester
   build-depends:
                 array           == 0.4.*,
                 base            == 4.6.*,
@@ -38,7 +39,7 @@ executable ecc-tester
                 mwc-random      == 0.13.*,
                 statistics      == 0.10.*,
                 vector          == 0.10.*,
-                ecc==0.1.0
+                ecc-manifold    ==0.1.0
   main-is: Main.hs
   hs-source-dirs: src, main
   Ghc-options: -O2 -threaded 

@@ -13,7 +13,7 @@ import Data.Word
 import qualified Data.Vector.Unboxed  as U
 import System.Random.MWC.Distributions
 import Data.Monoid
-import Data.Array.Matrix
+import Data.Matrix.Array
 import Statistics.Resampling.Bootstrap
 import System.IO
 
