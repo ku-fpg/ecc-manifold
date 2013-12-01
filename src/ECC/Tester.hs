@@ -129,6 +129,9 @@ runECC verb gen ebN0 ecc = do
 
   (mess1,parity) <- decode ecc rx
 
+  debug 3 $ "decoded message"
+  debug 4 $ show mess1
+
   when (length mess0 /= length mess1) $ do
     error $ "before and after codeword different lengths" ++ show (length mess0,length mess1)
 
@@ -161,7 +164,8 @@ runECC verb gen ebN0 ecc = do
 txRx_EbN0 :: EbN0 -> Rate -> GenIO -> [Bit] -> IO [Double]
 txRx_EbN0 ebnoDB rate gen xs = do
         rs :: [Double]  <- sequence [ standard gen | _ <- xs ]
-        return $ zipWith (+) (fmap (* sqrt sigma2) rs)
+        return $ fmap (* lc)
+               $ zipWith (+) (fmap (* sqrt sigma2) rs)
                              (fmap (* sqrt ec)
                                 $ fmap (\ x -> if getBit x then 1 else -1)
                                 $ xs)
