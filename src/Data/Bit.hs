@@ -1,21 +1,44 @@
-module Data.Bit where
+{-# LANGUAGE ScopedTypeVariables #-}
+-- |
+-- Module      : Data.Bit
+-- Copyright   : (c) The University of Kansas
+-- License     : BSD-style
+--
+-- Maintainer  : andygill@ku.edu
+-- Stability   : experimental
+-- Portability : portable
+--
+-- This implements a single bit numerical value, aka a 'Word1'.
+--
 
-import Control.Monad
+module Data.Bit (
+        -- * Data Types
+        Bit, Word1,
+        -- * Construction and extraction
+        mkBit, getBit,
+        -- * Utils
+        sumBits
+  ) where
+
 import Data.Bits
 
+-- A 'Bit' is 'Zero' or 'One'
 data Bit = Zero | One
         deriving (Eq, Ord, Enum)
 
 type Word1 = Bit
 
+-- | create a 'Bit'
 mkBit :: Bool -> Bit
 mkBit False = Zero
 mkBit True  = One
 
+-- | extract a 'Bit'
 getBit :: Bit -> Bool
 getBit Zero = False
 getBit One  = True
 
+-- | summate the 1-'Bit's
 sumBits :: [Bit] -> Int
 sumBits bs = length [ () | One <- bs ]
 
@@ -25,8 +48,8 @@ instance Show Bit where
 
 instance Read Bit where
     readsPrec p xs = case readsPrec p xs of
-                       [ (0,ys) ] -> [ (Zero,ys) ]
-                       [ (1,ys) ] -> [ (One,ys) ]
+                       [ (0::Int,ys) ] -> [ (Zero,ys) ]
+                       [ (1::Int,ys) ] -> [ (One,ys) ]
                        _ -> []
 
 instance Num Bit where
@@ -68,6 +91,7 @@ instance Bits Bit where
     bit _ = 0
     bitSize _ = 1
     testBit b 0 = getBit b
+    testBit _ _ = error "testBit out of range (0 .. 0)"
     isSigned _ = True
     popCount Zero = 0
     popCount One = 1
