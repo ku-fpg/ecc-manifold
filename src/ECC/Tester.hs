@@ -17,6 +17,8 @@ import System.IO
 import Data.Char
 import System.Environment
 import ECC.Estimate
+import GHC.Conc
+import Control.Concurrent.ParallelIO
 
 data Options = Options
         { codenames :: [String]
@@ -88,6 +90,7 @@ eccTester opts (Code _ f) k = do
                 ]
           | ecc <- eccs
           ]
+   stopGlobalPool -- TODO: use a local pool instead?
 
 -- Running a *multi* run of an ECC, giving a single ECCReport
 testECC :: Int -> EbN0 -> ECC -> (ECC -> EbN0 -> BEs -> IO Bool) -> IO ()
@@ -98,20 +101,24 @@ testECC verb ebN0 ecc k = do
    gen :: GenIO <- withSystemRandom $ asGenIO return
    -- once for now
 
-   let loop !n !bes = do
+   let loop (n:ns) !bes = do
         -- first, see if it is good enough
         okay <- k ecc ebN0 bes
         if okay then return () else do
                 debug 1 $ "trying " ++ show n ++ " messages"
-                bes1 <- foldM (\ !a !_ -> do bes0 <- runECC verb gen ebN0 ecc
-                                             return $ a <> bes0) bes [1..n]
+                bess <- parallel [ runECC verb gen ebN0 ecc
+                                 | _ <- [1..n]
+                                 ]
+                let bes1 = mconcat bess
                 let errs = sumBEs bes1
                 debug 1 $ "found " ++ show errs ++ " so far"
-                loop (n * 2) bes1
+                loop ns bes1
 
    -- do 1 initial run (so that the total runs are a power of 2)
    bes0 <- runECC verb gen ebN0 ecc
-   loop 1 bes0
+   cap <- getNumCapabilities
+   -- We run with the cap twice, then double each time
+   loop (cap : iterate (*2) cap) bes0
 
 splitCodename :: String -> [String]
 splitCodename = words . map (\ c -> if c == '/' then ' ' else c)
@@ -171,6 +178,9 @@ runECC verb gen ebN0 ecc = do
 
 -- Adding randomness
 txRx_EbN0 :: EbN0 -> Rate -> GenIO -> [Bit] -> IO [Double]
+txRx_EbN0 ebnoDB rate gen xs
+        | isNaN ebnoDB = return $ fmap (\ x -> if getBit x then 1 else -1)
+                                $ xs
 txRx_EbN0 ebnoDB rate gen xs = do
         rs :: [Double]  <- sequence [ standard gen | _ <- xs ]
         return $ fmap (* lc)

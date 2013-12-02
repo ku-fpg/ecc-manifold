@@ -26,6 +26,7 @@ library
                 base            == 4.6.*,
                 mtl             == 2.1.*,
                 mwc-random      == 0.13.*,
+                parallel-io     == 0.3.*,
                 statistics      == 0.10.*,
                 vector          == 0.10.*
 
@@ -38,6 +39,7 @@ executable ecc-manifold-tester
                 base            == 4.6.*,
                 mtl             == 2.1.*,
                 mwc-random      == 0.13.*,
+                parallel-io     == 0.3.*,
                 statistics      == 0.10.*,
                 vector          == 0.10.*,
                 ecc-manifold    ==0.1.0
