@@ -1,9 +1,32 @@
 {-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
-module ECC.Types where
+module ECC.Types
+        ( -- * Types
+          ECC(..),
+          Code(..),
+          BEs,          -- abstract
+          -- * Type Synonyms
+          MessageLength,
+          CodewordLength,
+          Rate,
+          EbN0,
+          -- * 'ECC' function
+          rateOf,
+          -- * 'BEs' functions
+          sumBEs,
+          sizeBEs,
+          eventBEs,
+          sampleBEs,
+          -- * General Utils
+          hard,
+          soft,
+          bitErrorRate
+        ) where
 
 import Control.Monad
 import Data.Bit
+import Data.List (unfoldr, transpose)
 import Data.Monoid
+
 
 -----------------------------------------------------------------------------
 -- Regarding Common Synomyns
@@ -16,33 +39,43 @@ type EbN0               = Double       -- noise
 -----------------------------------------------------------------------------
 -- Regarding ECC
 
--- Basic structure of an forward error-checking code.
 --
--- Laws:
+-- | Basic structure of an forward error-checking code.
+--
+-- Law(s):
 --
 -- > (encode >>= fmap hard >>= decode) == return
--- >
 --
--- * length of input to encode, and output of decode == message_length
--- * length of output to encode, and input of decode == codeword_length
+--  * length of input to encode, and output of decode == message_length
+--
+--  * length of output to encode, and input of decode == codeword_length
+--
 
 data ECC = ECC
      { name            :: String
+        -- ^ name for the output printer only. The name should have no spaces
      , encode          :: [Bit]       	-> IO [Bit]
         -- ^ encoded a 'MessageLength' list of bits into a 'CodewordLength' set of bits.
      , decode          :: [Double] 	-> IO ([Bit],Bool)
         -- ^ decoding a codeword into a message,
         --  along with a parity flag (True = parity or unknown (assume good), False = bad parity)
-     , message_length  :: MessageLength   -- length of v
+     , message_length  :: MessageLength
+         -- ^ The length, in bits, of the message (the thing to be sent)
      , codeword_length :: CodewordLength  -- length of w
+         -- ^ The length, in bits, of the codeword (the thing that is sent over the air, inc. parity bits)
      }
 
+-- | compute the rate of an 'ECC'.
 rateOf :: ECC -> Rational
 rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length ecc)
 
 -----------------------------------------------------------------------------
 -- Regarding Code
 
+-- | Code is an encaptuation of an 'ECC' builder.
+-- It has a list/description of possible codes,
+-- and a mapping from expanded code-name (/ is the seperator),
+-- to possible 'EEC's.
 data Code = Code [String] ([String] -> IO [ECC])
 
 instance Show Code where
@@ -56,6 +89,7 @@ instance Monoid Code where
 -- Regarding Bit Errors (BEs)
 
 
+-- | 'BEs' is a summary of bit errors in multiple runs.
 data BEs = BEs ![Int]
         deriving Show
 
@@ -70,34 +104,62 @@ instance Monoid BEs where
                 cons !x !ys = x : ys
 
 
--- The total numbers of bit errors
+-- | The total numbers of bit errors
 sumBEs :: BEs -> Int
 sumBEs (BEs xs) = sum [ n * i | (n,i) <- xs `zip` [0..]]
 
--- The number of samples
+-- | The number of samples that have been run.
 sizeBEs :: BEs -> Int
 sizeBEs (BEs xs) = sum xs
 
--- Build n buckets for the BEs.
+-- | Build n buckets for the BEs. Each one contains
+-- a bit error rate for message length of 1.
 -- Assumes that sumBEs bes % n == 0
+--
+-- Example:
+--
+--  * sampleBEs 1 bes gets the current bit error rate (for message length == 1).
+--
+--  * sampleBEs 256 bes gets 256 buckets, each one with a representative bit error rate.
+--
+-- Property:
+--
+--  * average (sampleBEs n bes) == average (sampleBEs m bes)  (for reasonable n,m)
+--
 sampleBEs :: Int -> BEs -> [Double]
-sampleBEs n bes = []
+sampleBEs n (BEs (zeros:bes)) = map sum' $ transpose $ unfoldr f xs
+   where
+        bes' = (zeros `mod` n) : bes
+        f ys = case (take n ys, drop n ys) of
+                 (vs,ws) | length vs == 0 -> Nothing
+                         | length vs < n  -> error "bad bucket size for sampleBEs"
+                         | otherwise      -> Just (vs,ws)
+        xs = concat $ zipWith (\ n i -> take n (repeat i)) bes' [0..]
+        sum' xs = fromIntegral (sum xs) / (fromIntegral (length xs + (zeros `div` n)))
 
+
+-- | turn an event with a specific number of bit errors (possibly 0),
+-- and give a singleton 'BEs'.
 eventBEs :: Int -> BEs
 eventBEs n = BEs $ take n (repeat 0) ++ [1]
 
+{-
 -- for +ve ints
 prop_ECCBERS (xs :: [Int]) = sum xs == sumBEs (mconcat (map eventBEs xs))
+-}
 
 -----------------------------------------------------------------------------
 -- Regarding Bit.
 
+-- | turn a soft value into a hard value.
 hard :: (Num a, Ord a) => a -> Bit
 hard = mkBit . (> 0)
 
+-- | turn a hard value into a soft value.
 soft :: (Num a) => Bit -> a
 soft 0 = -1
 soft 1 = 1
 
+-- | compute the bit error rate inside a 'BEs', for a specific 'ECC'.
 bitErrorRate :: ECC -> BEs -> Double
 bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))

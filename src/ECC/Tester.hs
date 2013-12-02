@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
-module ECC.Tester (eccMain, eccTester, eccPrinter) where
+module ECC.Tester (eccMain, eccPrinter) where
 
 import ECC.Types
 import System.Random.MWC
@@ -16,6 +16,7 @@ import Statistics.Resampling.Bootstrap
 import System.IO
 import Data.Char
 import System.Environment
+import ECC.Estimate
 
 data Options = Options
         { codenames :: [String]
@@ -23,6 +24,7 @@ data Options = Options
         , verbose   :: Int
         } deriving Show
 
+-- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
 eccMain :: Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccMain code k = do
         args <- getArgs
@@ -41,18 +43,25 @@ parseOptions (arg:rest) =
      opts = parseOptions rest
 parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0 }
 
+-- | A basic printer for our tests. Currently, we report on powers of two,
+-- and acccept a value if there are at least 1000 bit errors.
 eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
-eccPrinter eccs ebN0s =
+eccPrinter eccs ebN0s = do
+   gen :: GenIO <- withSystemRandom $ asGenIO return
           -- here is where we would setup any fancy output
-          return $ \  ecc ebN0 bes -> do
-                  putStr $ show (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
-                  let accept = sumBEs bes > 1000
-                  putStrLn $ " " ++ if accept then " accepted." else " continuting;"
-                  hFlush stdout
-                  return accept
+   return $ \  ecc ebN0 bes -> do
+           putStr $ show (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
+           est <- estimate gen 0.95 (message_length ecc) bes
+           putStr $ " "
+           putStr $ case est of
+                     Just e -> showEstimate e
+                     Nothing -> "-"
+           let accept = sumBEs bes > 1000
+           putStrLn $ " " ++ if accept then " accepted." else " continuting;"
+           hFlush stdout
+           return accept
 
 
--- eccTester :: Options -> Code -> IO [(String,[(EbN0,Int,Int,Estimate)])]
 eccTester :: Options -> Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccTester opts (Code _ f) k = do
    let debug n msg | n <= verbose opts  = putStrLn msg
