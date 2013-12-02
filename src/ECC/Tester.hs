@@ -109,7 +109,7 @@ testECC verb ebN0 ecc k = do
                 bess <- parallel [ runECC verb gen ebN0 ecc
                                  | _ <- [1..n]
                                  ]
-                let bes1 = mconcat bess
+                let bes1 = mconcat (bes:bess)
                 let errs = sumBEs bes1
                 debug 1 $ "found " ++ show errs ++ " so far"
                 loop ns bes1
