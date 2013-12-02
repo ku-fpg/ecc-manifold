@@ -102,23 +102,19 @@ testECC verb ebN0 ecc k = do
    -- once for now
 
    let loop (n:ns) !bes = do
-        -- first, see if it is good enough
-        okay <- k ecc ebN0 bes
-        if okay then return () else do
-                debug 1 $ "trying " ++ show n ++ " messages"
-                bess <- parallel [ runECC verb gen ebN0 ecc
-                                 | _ <- [1..n]
-                                 ]
-                let bes1 = mconcat (bes:bess)
-                let errs = sumBEs bes1
-                debug 1 $ "found " ++ show errs ++ " so far"
-                loop ns bes1
+        debug 1 $ "trying " ++ show n ++ " messages"
+        bess <- parallel [ runECC verb gen ebN0 ecc
+                         | _ <- [1..n]
+                         ]
+        let bes1 = mconcat (bes:bess)
+        let errs = sumBEs bes1
+        debug 1 $ "found " ++ show errs ++ " so far"
+        okay <- k ecc ebN0 bes1
+        if okay then return () else loop ns bes1
 
-   -- do 1 initial run (so that the total runs are a power of 2)
-   bes0 <- runECC verb gen ebN0 ecc
    cap <- getNumCapabilities
    -- We run with the cap twice, then double each time
-   loop (cap : iterate (*2) cap) bes0
+   loop (cap : iterate (*2) cap) mempty
 
 splitCodename :: String -> [String]
 splitCodename = words . map (\ c -> if c == '/' then ' ' else c)
