@@ -19,6 +19,7 @@ import System.Environment
 import ECC.Estimate
 import GHC.Conc
 import Control.Concurrent.ParallelIO
+import Numeric
 
 data Options = Options
         { codenames :: [String]
@@ -49,17 +50,32 @@ parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0 }
 -- and acccept a value if there are at least 1000 bit errors.
 eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
 eccPrinter eccs ebN0s = do
+   let tab1 = maximum (map length (map name eccs))
+
+   let rjust n xs = take (n - length xs) (cycle " ") ++ xs
+
    gen :: GenIO <- withSystemRandom $ asGenIO return
           -- here is where we would setup any fancy output
+
+   putStrLn $ "#" ++
+               rjust (tab1-1) "EEC" ++ " " ++
+              rjust 5 "EbN0" ++ " " ++
+              rjust 8 "Packets" ++ " " ++
+              rjust 8 "Errors" ++ " " ++
+              rjust 8 "BER" ++ " " ++
+              ""
    return $ \  ecc ebN0 bes -> do
-           putStr $ show (name ecc,ebN0,sumBEs bes,sizeBEs bes,bitErrorRate ecc bes)
            est <- estimate gen 0.95 (message_length ecc) bes
-           putStr $ " "
-           putStr $ case est of
-                     Just e -> showEstimate e
-                     Nothing -> "-"
            let accept = sumBEs bes > 1000
-           putStrLn $ " " ++ if accept then " accepted." else " continuting;"
+           putStrLn $
+                    rjust tab1 (name ecc) ++ " " ++
+                    rjust 5 (showFFloat (Just 2) ebN0 "") ++ " " ++
+                    rjust 8 (show (sizeBEs bes)) ++ " " ++
+                    rjust 8 (show (sumBEs bes)) ++ " " ++
+                    (case est of
+                      Just e -> " " ++ rjust 20 (showEstimate e)
+                      Nothing -> " 0.00e-0") ++
+                    if accept then "." else ","
            hFlush stdout
            return accept
 
