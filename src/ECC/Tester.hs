@@ -116,11 +116,14 @@ testECC verb ebN0 ecc k = do
 
    gen :: GenIO <- withSystemRandom $ asGenIO return
    -- once for now
+   cap <- getNumCapabilities
 
    let loop (n:ns) !bes = do
         debug 1 $ "trying " ++ show n ++ " messages"
-        bess <- parallel [ runECC verb gen ebN0 ecc
-                         | _ <- [1..n]
+        let real_par = min (cap * 16) n
+        bess <- parallel [ do foldM (\ !a !_ -> do bes0 <- runECC verb gen ebN0 ecc
+                                                   return $ a <> bes0) mempty [1..(n `div` real_par)]
+                         | _ <- [1..real_par]
                          ]
         let bes1 = mconcat (bes:bess)
         let errs = sumBEs bes1
@@ -128,7 +131,6 @@ testECC verb ebN0 ecc k = do
         okay <- k ecc ebN0 bes1
         if okay then return () else loop ns bes1
 
-   cap <- getNumCapabilities
    -- We run with the cap twice, then double each time
    loop (cap : iterate (*2) cap) mempty
 
