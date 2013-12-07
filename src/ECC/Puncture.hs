@@ -10,7 +10,7 @@ import Data.Char (isDigit)
 -- The predicate returns 'True' when we **keep** that specific bit.
 
 punctureECC :: (Int -> Bool) -> ECC -> ECC
-punctureECC pred ecc = ecc { name = name ecc ++ "/punctured"
+punctureECC pred ecc = ecc { name = name ecc ++ "/."
                            , encode = fmap (puncture ps) . encode ecc
                            , decode = decode ecc . unpuncture ps
                            , codeword_length = new_codeword_length
@@ -28,13 +28,11 @@ unpuncture (False:ns) xs     = 0 : unpuncture ns xs
 unpuncture (n    :ns) (x:xs) = x : unpuncture ns xs
 
 punctureTail :: Int -> ECC -> ECC
-punctureTail n ecc = punctureECC (< (codeword_length ecc - n)) ecc
+punctureTail n ecc = (punctureECC (< (codeword_length ecc - n)) ecc) { name = name ecc ++ "/." ++ show n }
 
 -- | This adds the ability to puncture code, using the '/.128' syntax
 punctureTailOfCode :: Code -> Code
 punctureTailOfCode (Code nm f) = Code nm $ \ names ->
         case last names of
-          '.':ns | all isDigit ns ->
-                let addDesc ecc = ecc { name = name ecc ++ "/." ++ ns }
-                in fmap (fmap (addDesc . punctureTail (read ns))) $ f (init names)
+          '.':ns | all isDigit ns -> fmap (fmap (punctureTail (read ns))) $ f (init names)
           _ -> f names
