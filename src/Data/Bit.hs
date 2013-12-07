@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, DeriveDataTypeable #-}
 -- |
 -- Module      : Data.Bit
 -- Copyright   : (c) The University of Kansas
@@ -21,10 +21,11 @@ module Data.Bit (
   ) where
 
 import Data.Bits
+import Data.Typeable
 
 -- A 'Bit' is 'Zero' or 'One'
 data Bit = Zero | One
-        deriving (Eq, Ord, Enum)
+        deriving (Eq, Ord, Enum, Typeable)
 
 type Word1 = Bit
 
