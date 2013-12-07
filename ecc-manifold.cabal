@@ -28,6 +28,7 @@ library
                 mwc-random      == 0.13.*,
                 parallel-io     == 0.3.*,
                 statistics      == 0.10.*,
+                time            == 1.4.*,
                 vector          == 0.10.*
 
   main-is: main/Main.hs
@@ -41,6 +42,7 @@ executable ecc-manifold-tester
                 mwc-random      == 0.13.*,
                 parallel-io     == 0.3.*,
                 statistics      == 0.10.*,
+                time            == 1.4.*,
                 vector          == 0.10.*,
                 ecc-manifold    ==0.1.0
   main-is: Main.hs

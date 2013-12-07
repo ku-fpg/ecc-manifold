@@ -20,36 +20,52 @@ import ECC.Estimate
 import GHC.Conc
 import Control.Concurrent.ParallelIO
 import Numeric
+import Data.Time.Clock
 
 data Options = Options
         { codenames :: [String]
         , ebN0s     :: [EbN0]
         , verbose   :: Int
+        , enough    :: Enough
         } deriving Show
 
+
+data Enough = BitErrorCount Int
+            | MessageCount Int
+        deriving Show
+
+data Mode = DOUBLE           -- double until predicate is met
+          | CRITERION Int    -- mesure N runs with criterion
+
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
-eccMain :: Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccMain :: Code -> (Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccMain code k = do
         args <- getArgs
         if null args
-         then error $ "usage: <name> [-v<n>] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
+         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
                    ++ "\ncodes: " ++ show code
          else eccTester (parseOptions args) code k
 
 parseOptions :: [String] -> Options
-parseOptions (['-','v',n]:rest) | isDigit n = (parseOptions rest) { verbose = read [n] }
+parseOptions (('-':'v':ns):rest)
+        | all isDigit ns = (parseOptions rest) { verbose = read ns }
+parseOptions (('-':'b':ns):rest)
+        | all isDigit ns = (parseOptions rest) { enough = BitErrorCount (read ns) }
+parseOptions (('-':'m':ns):rest)
+        | all isDigit ns = (parseOptions rest) { enough = MessageCount (read ns) }
 parseOptions (arg:rest) =
         case reads arg of
           [(ebN0::EbN0,"")] -> opts { ebN0s = ebN0 : ebN0s opts }
           _                 -> opts { codenames = arg : codenames opts }
   where
      opts = parseOptions rest
-parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0 }
+parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000 }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and acccept a value if there are at least 1000 bit errors.
-eccPrinter :: [ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
-eccPrinter eccs ebN0s = do
+eccPrinter :: Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
+eccPrinter opts eccs = do
+
    let tab1 = maximum (map length (map name eccs))
 
    let rjust n xs = take (n - length xs) (cycle " ") ++ xs
@@ -57,17 +73,30 @@ eccPrinter eccs ebN0s = do
    gen :: GenIO <- withSystemRandom $ asGenIO return
           -- here is where we would setup any fancy output
 
+   start <- getCurrentTime
+
    putStrLn $ "#" ++
-               rjust (tab1-1) "EEC" ++ " " ++
-              rjust 5 "EbN0" ++ " " ++
-              rjust 8 "Packets" ++ " " ++
-              rjust 8 "Errors" ++ " " ++
-              rjust 8 "BER" ++ " " ++
+              rjust 7    "Time" ++ " " ++
+              rjust tab1 "EEC" ++ " " ++
+              rjust 5    "EbN0" ++ " " ++
+              rjust 8    "Packets" ++ " " ++
+              rjust 8    "Errors" ++ " " ++
+              rjust 8    "BER" ++ " " ++
               ""
+
    return $ \  ecc ebN0 bes -> do
-           est <- estimate gen 0.95 (message_length ecc) bes
-           let accept = sumBEs bes > 1000
+           est <- if sizeBEs bes <= 2
+                  then return Nothing
+                  else estimate gen 0.95 (message_length ecc) bes
+           let accept = case enough opts of
+                          BitErrorCount n -> sumBEs bes >= n
+                          MessageCount n  -> sizeBEs bes >= n
+
+           now <- getCurrentTime
+           let diff = diffUTCTime now start
+
            putStrLn $
+                    rjust 8 (showFFloat (Just 2) (realToFrac diff) "") ++ " " ++
                     rjust tab1 (name ecc) ++ " " ++
                     rjust 5 (showFFloat (Just 2) ebN0 "") ++ " " ++
                     rjust 8 (show (sizeBEs bes)) ++ " " ++
@@ -80,19 +109,19 @@ eccPrinter eccs ebN0s = do
            return accept
 
 
-eccTester :: Options -> Code -> ([ECC] -> [EbN0] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccTester :: Options -> Code -> (Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccTester opts (Code _ f) k = do
+   print opts
    let debug n msg | n <= verbose opts  = putStrLn msg
                    | otherwise  = return ()
    gen :: GenIO <- withSystemRandom $ asGenIO return
-   print "eccTester"
    eccs <- liftM concat
             $ sequence
             $ map f
             $ map splitCodename
             $ codenames opts
 
-   k2 <- k eccs (ebN0s opts)
+   k2 <- k opts eccs
    sequence_
           [ sequence_
                 [ do testECC (verbose opts) ebN0 ecc k2
