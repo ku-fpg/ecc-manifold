@@ -34,9 +34,6 @@ data Enough = BitErrorCount Int
             | MessageCount Int
         deriving Show
 
-data Mode = DOUBLE           -- double until predicate is met
-          | CRITERION Int    -- mesure N runs with criterion
-
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
 eccMain :: Code -> (Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccMain code k = do
