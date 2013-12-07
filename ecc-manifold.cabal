@@ -18,6 +18,7 @@ library
                 ECC.Code.BPSK,
                 ECC.Code.Repetition,
                 ECC.Estimate,
+                ECC.Puncture,
                 ECC.Tester,
                 ECC.Types
 
