@@ -1,6 +1,7 @@
-module ECC.Puncture (punctureECC,punctureTail) where
+module ECC.Puncture (punctureECC,punctureTail,punctureTailOfCode) where
 
 import ECC.Types
+import Data.Char (isDigit)
 
 -- | 'punctureECC' accepts or rejects bits from a code, shortening the size
 -- of the codeword. During decode, the punctured bits are set to unknown (0 :: Double)
@@ -28,3 +29,10 @@ unpuncture (n    :ns) (x:xs) = x : unpuncture ns xs
 
 punctureTail :: Int -> ECC -> ECC
 punctureTail n ecc = punctureECC (< (codeword_length ecc - n)) ecc
+
+-- | This adds the ability to puncture code, using the '/.128' syntax
+punctureTailOfCode :: Code -> Code
+punctureTailOfCode (Code nm f) = Code nm $ \ names ->
+        case last names of
+          '.':ns | all isDigit ns -> fmap (fmap (punctureTail (read ns))) $ f (init names)
+          _ -> f names
