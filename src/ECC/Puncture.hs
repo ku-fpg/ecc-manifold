@@ -34,5 +34,7 @@ punctureTail n ecc = punctureECC (< (codeword_length ecc - n)) ecc
 punctureTailOfCode :: Code -> Code
 punctureTailOfCode (Code nm f) = Code nm $ \ names ->
         case last names of
-          '.':ns | all isDigit ns -> fmap (fmap (punctureTail (read ns))) $ f (init names)
+          '.':ns | all isDigit ns ->
+                let addDesc ecc = ecc { name = name ecc ++ "/." ++ ns }
+                in fmap (fmap (addDesc . punctureTail (read ns))) $ f (init names)
           _ -> f names
