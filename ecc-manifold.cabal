@@ -50,3 +50,4 @@ executable ecc-manifold-tester
   hs-source-dirs: src, main
   Ghc-options: -O2 -threaded 
 
+--NOTES: --enable-library-profiling --enable-executable-profiling

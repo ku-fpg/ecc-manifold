@@ -144,10 +144,13 @@ testECC verb ebN0 ecc k = do
    -- once for now
    cap <- getNumCapabilities
 
+   let ourpar = sequence -- parallel
+   let cap = 1           -- for now
+
    let loop (n:ns) !bes = do
         debug 1 $ "trying " ++ show n ++ " messages"
         let real_par = min (cap * 16) n
-        bess <- parallel [ do foldM (\ !a !_ -> do bes0 <- runECC verb gen ebN0 ecc
+        bess <- ourpar   [ do foldM (\ !a !_ -> do bes0 <- runECC verb gen ebN0 ecc
                                                    return $ a <> bes0) mempty [1..(n `div` real_par)]
                          | _ <- [1..real_par]
                          ]
