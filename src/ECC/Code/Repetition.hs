@@ -7,20 +7,20 @@ import Data.Char (isDigit)
 import Data.Monoid
 
 -- Simple BSPK encode/decode.
-mkHardRepetition :: Int -> ECC
+mkHardRepetition :: Applicative f => Int -> ECC f
 mkHardRepetition n = ECC
         { name     = "repetition/hard/" ++ show n
-        , encode   = return . take n . repeat . head
-        , decode   = return . (,True) . (: []) . mkBit
+        , encode   = pure . take n . repeat . head
+        , decode   = pure . (,True) . (: []) . mkBit
                    . (> (n `div` 2)) . length . filter (== 1) . map hard
         , message_length  = 1
         , codeword_length = n
         }
-mkSoftRepetition :: Int -> ECC
+mkSoftRepetition :: Applicative f => Int -> ECC f
 mkSoftRepetition n = ECC
         { name     = "repetition/soft/" ++ show n
-        , encode   = return . take n . repeat . head
-        , decode   = return . (,True) . (: []) . mkBit . (> 0) . sum
+        , encode   = pure . take n . repeat . head
+        , decode   = pure . (,True) . (: []) . mkBit . (> 0) . sum
         , message_length  = 1
         , codeword_length = n
         }

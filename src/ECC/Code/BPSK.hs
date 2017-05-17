@@ -7,11 +7,11 @@ import Data.Char (isDigit)
 
 -- Simple BSPK encode/decode.
 
-mkBPSK :: ECC
+mkBPSK :: Applicative f => ECC f
 mkBPSK = ECC
         { name     = "bspk"
-        , encode   = return
-        , decode   = return . (,True) . fmap mkBit . fmap (>= 0)
+        , encode   = pure
+        , decode   = pure . (,True) . fmap mkBit . fmap (>= 0)
         , message_length  = 1
         , codeword_length = 1
         }

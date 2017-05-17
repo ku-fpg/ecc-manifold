@@ -35,7 +35,7 @@ data Enough = BitErrorCount Int
         deriving Show
 
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
-eccMain :: Code -> (Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccMain :: Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccMain code k = do
         args <- getArgs
         if null args
@@ -60,7 +60,7 @@ parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = Bi
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and acccept a value if there are at least 1000 bit errors.
-eccPrinter :: Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)
+eccPrinter :: Options -> [ECC f] -> IO (ECC f -> EbN0 -> BEs -> IO Bool)
 eccPrinter opts eccs = do
 
    let tab1 = maximum (map length (map name eccs))
@@ -106,7 +106,7 @@ eccPrinter opts eccs = do
            return accept
 
 
-eccTester :: Options -> Code -> (Options -> [ECC] -> IO (ECC -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccTester :: Options -> Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> BEs -> IO Bool)) -> IO ()
 eccTester opts (Code _ f) k = do
    print opts
    let debug n msg | n <= verbose opts  = putStrLn msg
@@ -135,7 +135,7 @@ eccTester opts (Code _ f) k = do
    stopGlobalPool -- TODO: use a local pool instead?
 
 -- Running a *multi* run of an ECC, giving a single ECCReport
-testECC :: Int -> EbN0 -> ECC -> (ECC -> EbN0 -> BEs -> IO Bool) -> IO ()
+testECC :: Int -> EbN0 -> ECC IO -> (ECC IO -> EbN0 -> BEs -> IO Bool) -> IO ()
 testECC verb ebN0 ecc k = do
    let debug n msg | n <= verb  = putStrLn msg
                    | otherwise  = return ()
@@ -167,7 +167,7 @@ splitCodename :: String -> [String]
 splitCodename = words . map (\ c -> if c == '/' then ' ' else c)
 
 -- Running a *single* run of an ECC, getting a single bit error count
-runECC :: Int -> GenIO -> EbN0 -> ECC -> IO BEs
+runECC :: Int -> GenIO -> EbN0 -> ECC IO -> IO BEs
 runECC verb gen ebN0 ecc = do
 
   let debug n msg | n <= verb  = putStrLn msg

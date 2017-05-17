@@ -51,12 +51,12 @@ type EbN0               = Double       -- noise
 --  * length of output to encode, and input of decode == codeword_length
 --
 
-data ECC = ECC
+data ECC m = ECC
      { name            :: String
         -- ^ name for the output printer only. The name should have no spaces
-     , encode          :: [Bit]       	-> IO [Bit]
+     , encode          :: [Bit]       	-> m [Bit]
         -- ^ encoded a 'MessageLength' list of bits into a 'CodewordLength' set of bits.
-     , decode          :: [Double] 	-> IO ([Bit],Bool)
+     , decode          :: [Double] 	-> m ([Bit],Bool)
         -- ^ decoding a codeword into a message,
         --  along with a parity flag (True = parity or unknown (assume good), False = bad parity)
      , message_length  :: MessageLength
@@ -66,7 +66,7 @@ data ECC = ECC
      }
 
 -- | compute the rate of an 'ECC'.
-rateOf :: ECC -> Rational
+rateOf :: ECC IO -> Rational
 rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length ecc)
 
 -----------------------------------------------------------------------------
@@ -76,7 +76,7 @@ rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length e
 -- It has a list/description of possible codes,
 -- and a mapping from expanded code-name (/ is the seperator),
 -- to possible 'EEC's.
-data Code = Code [String] ([String] -> IO [ECC])
+data Code = Code [String] ([String] -> IO [ECC IO])
 
 instance Show Code where
         show (Code codes _) = show codes
@@ -161,5 +161,5 @@ soft 0 = -1
 soft 1 = 1
 
 -- | compute the bit error rate inside a 'BEs', for a specific 'ECC'.
-bitErrorRate :: ECC -> BEs -> Double
+bitErrorRate :: ECC IO -> BEs -> Double
 bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))
