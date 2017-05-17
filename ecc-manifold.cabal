@@ -23,28 +23,28 @@ library
                 ECC.Types
 
   build-depends:
-                array           == 0.4.*,
-                base            == 4.6.*,
-                mtl             == 2.1.*,
-                mwc-random      == 0.13.*,
-                parallel-io     == 0.3.*,
-                statistics      == 0.10.*,
-                time            == 1.4.*,
-                vector          == 0.10.*
+                array           >= 0.4,
+                base            >= 4.6,
+                mtl             >= 2.1,
+                mwc-random      >= 0.13,
+                parallel-io     >= 0.3,
+                statistics      >= 0.10,
+                time            >= 1.4,
+                vector          >= 0.10
 
-  main-is: main/Main.hs
+  -- main-is: main/Main.hs
   hs-source-dirs:      src
 
 executable ecc-manifold-tester
   build-depends:
-                array           == 0.4.*,
-                base            == 4.6.*,
-                mtl             == 2.1.*,
-                mwc-random      == 0.13.*,
-                parallel-io     == 0.3.*,
-                statistics      == 0.10.*,
-                time            == 1.4.*,
-                vector          == 0.10.*,
+                array           >= 0.4,
+                base            >= 4.6,
+                mtl             >= 2.1,
+                mwc-random      >= 0.13,
+                parallel-io     >= 0.3,
+                statistics      >= 0.10,
+                time            >= 1.4,
+                vector          >= 0.10,
                 ecc-manifold    ==0.1.0
   main-is: Main.hs
   hs-source-dirs: src, main
