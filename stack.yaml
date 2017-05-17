@@ -5,12 +5,6 @@
 # http://docs.haskellstack.org/en/stable/yaml_configuration/
 
 # A warning or info to be displayed to the user on config load.
-user-message: ! 'Warning (added by new or init): Some packages were found to be incompatible
-  with the resolver and have been left commented out in the packages section.
-
-  You can suppress this message by removing it from stack.yaml
-
-'
 
 # Resolver to choose a 'specific' stackage snapshot or a compiler version.
 # A snapshot resolver dictates the compiler version and the set of packages
@@ -45,10 +39,6 @@ resolver: lts-8.14
 # will not be run. This is useful for tweaking upstream packages.
 packages: 
   - '.'
-# The following packages have been ignored due to incompatibility with the
-# resolver compiler, dependency conflicts with other packages
-# or unsatisfied dependencies.
-#- .
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
