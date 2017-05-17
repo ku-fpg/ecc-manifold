@@ -28,7 +28,7 @@ library
                 mtl             >= 2.1,
                 mwc-random      >= 0.13,
                 parallel-io     >= 0.3,
-                statistics      >= 0.10,
+                statistics      >= 0.14,
                 time            >= 1.4,
                 vector          >= 0.10
 
