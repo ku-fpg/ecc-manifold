@@ -7,17 +7,18 @@ import Data.Char (isDigit)
 
 -- Simple BSPK encode/decode.
 
-mkBPSK :: Applicative f => ECC f
-mkBPSK = ECC
-        { name     = "bspk"
-        , encode   = pure
-        , decode   = pure . (,True) . fmap hard
-        , message_length  = 1
-        , codeword_length = 1
+mkUnencoded :: Applicative f => Int -> ECC f
+mkUnencoded n = ECC
+        { name            = "unecoded"
+        , encode          = pure
+        , decode          = pure . (,True) . fmap hard
+        , message_length  = n
+        , codeword_length = n
         }
 
 code :: Code
-code = Code ["bpsk"]
+code = Code ["unencoded/<message-length>"]
      $ \ xs -> case xs of
-                        ["bpsk"]                   -> return [mkBPSK]        -- the default
-                        _                          -> return []
+                        ["unencoded",n]  | all isDigit n
+                                         -> return [mkUnencoded (read n)]  
+                        _                -> return []
