@@ -4,6 +4,7 @@ module ECC.Code.BPSK where
 import Data.Bit
 import ECC.Types
 import Data.Char (isDigit)
+import qualified Data.Vector.Unboxed  as U
 
 -- Simple BSPK encode/decode.
 
@@ -11,7 +12,7 @@ mkUnencoded :: Applicative f => Int -> ECC f
 mkUnencoded n = ECC
         { name            = "unecoded"
         , encode          = pure
-        , decode          = pure . (,True) . fmap hard
+        , decode          = pure . (,True) . U.map hard
         , message_length  = n
         , codeword_length = n
         }

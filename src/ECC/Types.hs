@@ -26,6 +26,7 @@ import Control.Monad
 import Data.Bit
 import Data.List (unfoldr, transpose)
 import Data.Monoid
+import qualified Data.Vector.Unboxed  as U
 
 
 -----------------------------------------------------------------------------
@@ -54,9 +55,9 @@ type EbN0               = Double       -- noise
 data ECC m = ECC
      { name            :: String
         -- ^ name for the output printer only. The name should have no spaces
-     , encode          :: [Bit]       	-> m [Bit]
+     , encode          :: U.Vector Bool       	-> m (U.Vector Bool)
         -- ^ encoded a 'MessageLength' list of bits into a 'CodewordLength' set of bits.
-     , decode          :: [Double] 	-> m ([Bit],Bool)
+     , decode          :: U.Vector Double       -> m (U.Vector Bool,Bool)
         -- ^ decoding a codeword into a message,
         --  along with a parity flag (True = parity or unknown (assume good), False = bad parity)
      , message_length  :: MessageLength
@@ -152,14 +153,14 @@ prop_ECCBERS (xs :: [Int]) = sum xs == sumBEs (mconcat (map eventBEs xs))
 -- Regarding Bit.
 
 -- | turn a soft value into a hard value.
-hard :: (Num a, Ord a) => a -> Bit
-hard = fromBool . (> 0)
+hard :: (Num a, Ord a) => a -> Bool
+hard = (> 0)
 
 -- | turn a hard value into a soft value.
-soft :: (Num a) => Bit -> a
-soft 0 = -1
-soft 1 = 1
+soft :: (Num a) => Bool -> a
+soft False = -1
+soft True  = 1
 
 -- | compute the bit error rate inside a 'BEs', for a specific 'ECC'.
-bitErrorRate :: ECC IO -> BEs -> Double
+bitErrorRate :: ECC f -> BEs -> Double
 bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))

@@ -2,6 +2,7 @@ module ECC.Puncture (punctureECC,punctureTail,punctureTailOfCode) where
 
 import ECC.Types
 import Data.Char (isDigit)
+import qualified Data.Vector.Unboxed  as U
 
 -- | 'punctureECC' accepts or rejects bits from a code, shortening the size
 -- of the codeword. During decode, the punctured bits are set to unknown (0 :: Double)
@@ -11,8 +12,8 @@ import Data.Char (isDigit)
 
 punctureECC :: Functor f => (Int -> Bool) -> ECC f -> ECC f
 punctureECC pred ecc = ecc { name = name ecc ++ "/."
-                           , encode = fmap (puncture ps) . encode ecc
-                           , decode = decode ecc . unpuncture ps
+                           , encode = fmap (U.fromList . puncture ps . U.toList) . encode ecc
+                           , decode = decode ecc . U.fromList . unpuncture ps . U.toList
                            , codeword_length = new_codeword_length
                            }
   where

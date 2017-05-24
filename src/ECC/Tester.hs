@@ -193,13 +193,13 @@ runECC verb gen ebN0 ecc = do
                   | otherwise  = return ()
 
   debug 3 $ "starting message"
-  !mess0  <- liftM (U.fromList . fmap fromBool) $ sequence [ uniform gen | _ <- [1..message_length ecc]]
+  !mess0  <- liftM U.fromList $ sequence [ uniform gen | _ <- [1..message_length ecc]]
   debug 3 $ "generated message"
   debug 4 $ show mess0
 
   start_encoding <- getCurrentTime
 
-  !code0  <- U.fromList <$> encode ecc (U.toList mess0)
+  !code0  <- encode ecc mess0
   debug 3 $ "encoded message"
   debug 4 $ show code0
 
@@ -212,10 +212,7 @@ runECC verb gen ebN0 ecc = do
   
   start_decoding <- getCurrentTime
   
-  !(!mess1,parity) <- decode ecc (U.toList rx)
-
-  -- Until we change the decode type  
-  !mess1 <- U.fromList <$> pure mess1
+  !(!mess1,parity) <- decode ecc rx
 
   debug 3 $ "decoded message"
   debug 4 $ "parity: " ++ show parity
@@ -254,7 +251,7 @@ runECC verb gen ebN0 ecc = do
 -}
 
 -- Adding randomness
-txRx_EbN0 :: EbN0 -> Rate -> GenIO -> U.Vector Bit -> IO (U.Vector Double)
+txRx_EbN0 :: EbN0 -> Rate -> GenIO -> U.Vector Bool -> IO (U.Vector Double)
 txRx_EbN0 ebnoDB rate gen xs
         | isNaN ebnoDB = return $ U.map soft
                                 $ xs
