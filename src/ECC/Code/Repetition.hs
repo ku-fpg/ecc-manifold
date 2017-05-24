@@ -11,7 +11,7 @@ mkHardRepetition :: Applicative f => Int -> ECC f
 mkHardRepetition n = ECC
         { name     = "repetition/hard/" ++ show n
         , encode   = pure . take n . repeat . head
-        , decode   = pure . (,True) . (: []) . mkBit
+        , decode   = pure . (,True) . (: []) . fromBool
                    . (> (n `div` 2)) . length . filter (== 1) . map hard
         , message_length  = 1
         , codeword_length = n
@@ -20,7 +20,7 @@ mkSoftRepetition :: Applicative f => Int -> ECC f
 mkSoftRepetition n = ECC
         { name     = "repetition/soft/" ++ show n
         , encode   = pure . take n . repeat . head
-        , decode   = pure . (,True) . (: []) . mkBit . (> 0) . sum
+        , decode   = pure . (,True) . (: []) . fromBool . (> 0) . sum
         , message_length  = 1
         , codeword_length = n
         }

@@ -153,7 +153,7 @@ prop_ECCBERS (xs :: [Int]) = sum xs == sumBEs (mconcat (map eventBEs xs))
 
 -- | turn a soft value into a hard value.
 hard :: (Num a, Ord a) => a -> Bit
-hard = mkBit . (> 0)
+hard = fromBool . (> 0)
 
 -- | turn a hard value into a soft value.
 soft :: (Num a) => Bit -> a

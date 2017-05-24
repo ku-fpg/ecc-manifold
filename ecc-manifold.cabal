@@ -14,7 +14,7 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:
-                Data.Bit,
+--                Data.Bit,
                 ECC.Code.BPSK,
                 ECC.Code.Repetition,
                 ECC.Estimate,
@@ -25,6 +25,7 @@ library
   build-depends:
                 array           >= 0.4,
                 base            >= 4.6,
+                bitvec          >= 0.1.0.2,
                 mtl             >= 2.1,
                 mwc-random      >= 0.13,
                 parallel-io     >= 0.3,
@@ -39,6 +40,7 @@ executable ecc-manifold-tester
   build-depends:
                 array           >= 0.4,
                 base            >= 4.6,
+                bitvec          >= 0.1.0.2,
                 mtl             >= 2.1,
                 mwc-random      >= 0.13,
                 parallel-io     >= 0.3,

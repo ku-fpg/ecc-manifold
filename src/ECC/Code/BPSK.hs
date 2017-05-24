@@ -11,7 +11,7 @@ mkBPSK :: Applicative f => ECC f
 mkBPSK = ECC
         { name     = "bspk"
         , encode   = pure
-        , decode   = pure . (,True) . fmap mkBit . fmap (>= 0)
+        , decode   = pure . (,True) . fmap hard
         , message_length  = 1
         , codeword_length = 1
         }

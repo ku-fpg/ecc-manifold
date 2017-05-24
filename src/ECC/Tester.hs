@@ -174,7 +174,7 @@ runECC verb gen ebN0 ecc = do
                   | otherwise  = return ()
 
   debug 3 $ "starting message"
-  mess0  <- liftM (fmap mkBit) $ sequence [ uniform gen | _ <- [1..message_length ecc]]
+  mess0  <- liftM (fmap fromBool) $ sequence [ uniform gen | _ <- [1..message_length ecc]]
   debug 3 $ "generated message"
   debug 4 $ show mess0
 
@@ -182,7 +182,7 @@ runECC verb gen ebN0 ecc = do
   debug 3 $ "encoded message"
   debug 4 $ show code0
 
-  rx <- txRx_EbN0 ebN0 (rateOf ecc) gen code0
+  rx <- liftM U.toList $ txRx_EbN0 ebN0 (rateOf ecc) gen $ U.fromList code0
   debug 3 $ "tx/rx'd message"
   debug 4 $ show rx
 
@@ -194,7 +194,7 @@ runECC verb gen ebN0 ecc = do
   when (length mess0 /= length mess1) $ do
     error $ "before and after codeword different lengths" ++ show (length mess0,length mess1)
 
-  let bitErrorCount = length [ () | (b,a) <- zip mess0 mess1, a /= b ]
+  let !bitErrorCount = length [ () | (b,a) <- zip mess0 mess1, a /= b ]
   debug 2 $ show bitErrorCount ++ " bit errors in message"
 
   return $ eventBEs bitErrorCount
@@ -220,17 +220,17 @@ runECC verb gen ebN0 ecc = do
 -}
 
 -- Adding randomness
-txRx_EbN0 :: EbN0 -> Rate -> GenIO -> [Bit] -> IO [Double]
+txRx_EbN0 :: EbN0 -> Rate -> GenIO -> U.Vector Bit -> IO (U.Vector Double)
 txRx_EbN0 ebnoDB rate gen xs
-        | isNaN ebnoDB = return $ fmap (\ x -> if getBit x then 1 else -1)
+        | isNaN ebnoDB = return $ U.map soft
                                 $ xs
 txRx_EbN0 ebnoDB rate gen xs = do
-        rs :: [Double]  <- sequence [ standard gen | _ <- xs ]
-        return $ fmap (* lc)
-               $ zipWith (+) (fmap (* sqrt sigma2) rs)
-                             (fmap (* sqrt ec)
-                                $ fmap (\ x -> if getBit x then 1 else -1)
-                                $ xs)
+        rs :: U.Vector Double  <- U.fromList <$> sequence [ standard gen | _ <- U.toList xs ]
+        return $ U.map (* lc)
+               $ U.zipWith (+) (U.map (* sqrt sigma2) rs)
+                               (U.map (* sqrt ec)
+                                  $ U.map soft
+                                  $ xs)
      where
          sigma2 = ((1/10) ** (ebnoDB/10)) / 2
          ec     = fromRational rate
