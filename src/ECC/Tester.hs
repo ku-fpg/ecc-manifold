@@ -3,7 +3,6 @@ module ECC.Tester (eccMain, eccPrinter) where
 
 import ECC.Types
 import System.Random.MWC
-import Data.Bit
 import Control.Monad
 --import Control.Monad.Primitive (PrimMonad, PrimState)
 import Control.Monad.Trans (MonadIO(liftIO))

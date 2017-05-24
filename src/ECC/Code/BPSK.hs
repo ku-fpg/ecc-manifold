@@ -1,7 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 module ECC.Code.BPSK where
 
-import Data.Bit
 import ECC.Types
 import Data.Char (isDigit)
 import qualified Data.Vector.Unboxed  as U

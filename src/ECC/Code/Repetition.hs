@@ -1,7 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 module ECC.Code.Repetition where
 
-import Data.Bit
 import ECC.Types
 import Data.Char (isDigit)
 import Data.Monoid

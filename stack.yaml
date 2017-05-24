@@ -4,6 +4,5 @@ packages:
 - '.'
 extra-deps:
 - base-orphans-0.6
-- bitvec-0.1.0.2
 - statistics-0.14.0.1
 resolver: lts-8.14

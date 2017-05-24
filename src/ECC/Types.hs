@@ -23,7 +23,6 @@ module ECC.Types
         ) where
 
 import Control.Monad
-import Data.Bit
 import Data.List (unfoldr, transpose)
 import Data.Monoid
 import qualified Data.Vector.Unboxed  as U

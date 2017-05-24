@@ -1,7 +1,6 @@
 module ECC.Estimate (estimate,showEstimate) where
 
 import ECC.Types
-import Data.Bit
 import qualified Data.Vector.Unboxed as U
 import Statistics.Sample (mean)
 import Statistics.Resampling (resample, fromResample, Estimator(..))
