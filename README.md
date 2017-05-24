@@ -7,5 +7,5 @@ This package is a test harness (a manifold) for forward error correctors.
     
 ## To Run
 
-    % stack exec ecc-manifold-tester 10 bpsk    
+    % stack exec ecc-manifold-tester 10 unencoded/1024    
     

@@ -1,11 +1,11 @@
 {-# LANGUAGE TupleSections #-}
-module ECC.Code.BPSK where
+module ECC.Code.Unencoded where
 
 import ECC.Types
 import Data.Char (isDigit)
 import qualified Data.Vector.Unboxed  as U
 
--- Simple BSPK encode/decode.
+-- Unencoded encode/decode.
 
 mkUnencoded :: Applicative f => Int -> ECC f
 mkUnencoded n = ECC

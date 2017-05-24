@@ -7,11 +7,16 @@ import Data.Monoid
 import qualified Data.Vector.Unboxed  as U
 
 
--- Simple BSPK encode/decode.
+-- Repetition encode/decode.
+-- These are *WRONG*.
+-- See page 28 of Moon book.
+
 mkHardRepetition :: Applicative f => Int -> ECC f
 mkHardRepetition n = ECC
         { name     = "repetition/hard/" ++ show n
         , encode   = pure . U.fromList . take n . repeat . head . U.toList
+
+
         , decode   = pure . (,True) . U.fromList . (: []) 
                    . (> (n `div` 2)) . length . filter id . map hard . U.toList
         , message_length  = 1
