@@ -34,8 +34,22 @@ data Enough = BitErrorCount Int
             | MessageCount Int
         deriving Show
 
+data TestRun = TestRun 
+       { test_packet_count   :: !Int -- how many packets
+       , test_encode_time    :: !Float
+       , test_decode_time    :: !Float
+       , test_ber            :: !BEs
+       }
+      deriving Show
+
+
+instance Monoid TestRun where
+    mempty = TestRun 0 0 0 mempty
+    TestRun p1 en1 de1 ber1 `mappend` TestRun p2 en2 de2 ber2 
+        = TestRun (p1 + p2) (en1 + en2) (de1 + de2) (ber1 `mappend` ber2)
+    
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
-eccMain :: Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccMain :: Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
 eccMain code k = do
         args <- getArgs
         if null args
@@ -60,7 +74,7 @@ parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = Bi
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and acccept a value if there are at least 1000 bit errors.
-eccPrinter :: Options -> [ECC f] -> IO (ECC f -> EbN0 -> BEs -> IO Bool)
+eccPrinter :: Options -> [ECC f] -> IO (ECC f -> EbN0 -> TestRun -> IO Bool)
 eccPrinter opts eccs = do
 
    let tab1 = maximum (map length (map name eccs))
@@ -77,11 +91,13 @@ eccPrinter opts eccs = do
               rjust tab1 "EEC" ++ " " ++
               rjust 5    "EbN0" ++ " " ++
               rjust 8    "Packets" ++ " " ++
+              rjust 10   "Encode/s" ++ " " ++
+              rjust 10   "Decode/s" ++ " " ++
               rjust 8    "Errors" ++ " " ++
               rjust 8    "BER" ++ " " ++
               ""
 
-   return $ \  ecc ebN0 bes -> do
+   return $ \  ecc ebN0 (TestRun tCount tEn tDe bes) -> do
            est <- if sizeBEs bes <= 2
                   then return Nothing
                   else estimate gen 0.95 (message_length ecc) bes
@@ -92,11 +108,14 @@ eccPrinter opts eccs = do
            now <- getCurrentTime
            let diff = diffUTCTime now start
 
+
            putStrLn $
                     rjust 8 (showFFloat (Just 2) (realToFrac diff) "") ++ " " ++
                     rjust tab1 (name ecc) ++ " " ++
                     rjust 5 (showFFloat (Just 2) ebN0 "") ++ " " ++
                     rjust 8 (show (sizeBEs bes)) ++ " " ++
+                    rjust 10 (showFFloat (Just 4) (fromIntegral tCount/tEn) "") ++ " " ++
+                    rjust 10 (showFFloat (Just 4) (fromIntegral tCount/tDe) "") ++ " " ++
                     rjust 8 (show (sumBEs bes)) ++ " " ++
                     (case est of
                       Just e -> " " ++ rjust 20 (showEstimate e)
@@ -106,7 +125,7 @@ eccPrinter opts eccs = do
            return accept
 
 
-eccTester :: Options -> Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> BEs -> IO Bool)) -> IO ()
+eccTester :: Options -> Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
 eccTester opts (Code _ f) k = do
    print opts
    let debug n msg | n <= verbose opts  = putStrLn msg
@@ -135,7 +154,7 @@ eccTester opts (Code _ f) k = do
    stopGlobalPool -- TODO: use a local pool instead?
 
 -- Running a *multi* run of an ECC, giving a single ECCReport
-testECC :: Int -> EbN0 -> ECC IO -> (ECC IO -> EbN0 -> BEs -> IO Bool) -> IO ()
+testECC :: Int -> EbN0 -> ECC IO -> (ECC IO -> EbN0 -> TestRun -> IO Bool) -> IO ()
 testECC verb ebN0 ecc k = do
    let debug n msg | n <= verb  = putStrLn msg
                    | otherwise  = return ()
@@ -155,7 +174,7 @@ testECC verb ebN0 ecc k = do
                          | _ <- [1..real_par]
                          ]
         let bes1 = mconcat (bes:bess)
-        let errs = sumBEs bes1
+        let errs = sumBEs $ test_ber bes1
         debug 1 $ "found " ++ show errs ++ " so far"
         okay <- k ecc ebN0 bes1
         if okay then return () else loop ns bes1
@@ -167,37 +186,52 @@ splitCodename :: String -> [String]
 splitCodename = words . map (\ c -> if c == '/' then ' ' else c)
 
 -- Running a *single* run of an ECC, getting a single bit error count
-runECC :: Int -> GenIO -> EbN0 -> ECC IO -> IO BEs
+runECC :: Int -> GenIO -> EbN0 -> ECC IO -> IO TestRun
 runECC verb gen ebN0 ecc = do
 
   let debug n msg | n <= verb  = putStrLn msg
                   | otherwise  = return ()
 
   debug 3 $ "starting message"
-  mess0  <- liftM (fmap fromBool) $ sequence [ uniform gen | _ <- [1..message_length ecc]]
+  !mess0  <- liftM (U.fromList . fmap fromBool) $ sequence [ uniform gen | _ <- [1..message_length ecc]]
   debug 3 $ "generated message"
   debug 4 $ show mess0
 
-  code0  <- encode ecc mess0
+  start_encoding <- getCurrentTime
+
+  !code0  <- U.fromList <$> encode ecc (U.toList mess0)
   debug 3 $ "encoded message"
   debug 4 $ show code0
 
-  rx <- liftM U.toList $ txRx_EbN0 ebN0 (rateOf ecc) gen $ U.fromList code0
+  end_encoding <- getCurrentTime
+
+  !rx <- txRx_EbN0 ebN0 (rateOf ecc) gen code0
   debug 3 $ "tx/rx'd message"
   debug 4 $ show rx
 
-  (mess1,parity) <- decode ecc rx
+  
+  start_decoding <- getCurrentTime
+  
+  !(!mess1,parity) <- decode ecc (U.toList rx)
+
+  -- Until we change the decode type  
+  !mess1 <- U.fromList <$> pure mess1
 
   debug 3 $ "decoded message"
+  debug 4 $ "parity: " ++ show parity
   debug 4 $ show mess1
 
-  when (length mess0 /= length mess1) $ do
-    error $ "before and after codeword different lengths" ++ show (length mess0,length mess1)
+  when (U.length mess0 /= U.length mess1) $ do
+    error $ "before and after codeword different lengths" ++ show (U.length mess0,U.length mess1)
 
-  let !bitErrorCount = length [ () | (b,a) <- zip mess0 mess1, a /= b ]
+  let !bitErrorCount = length [ () | (b,a) <- U.toList $ U.zip mess0 mess1, a /= b ]
   debug 2 $ show bitErrorCount ++ " bit errors in message"
 
-  return $ eventBEs bitErrorCount
+  end_decoding <- getCurrentTime
+  
+  return $ TestRun 1 (realToFrac $ diffUTCTime end_encoding start_encoding)
+                     (realToFrac $ diffUTCTime end_decoding start_decoding) 
+         $ eventBEs bitErrorCount
 
 {-
 
