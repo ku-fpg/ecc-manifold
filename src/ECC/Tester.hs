@@ -81,7 +81,7 @@ eccPrinter opts eccs = do
    let rjust n xs = take (n - length xs) (cycle " ") ++ xs
 
    -- This generator is uses for the bootstrapping
-   gen :: GenIO <- withSystemRandom $ asGenIO return
+   gen :: GenIO <- createSystemRandom
 
    start <- getCurrentTime
 
@@ -132,7 +132,7 @@ eccTester opts (Code _ f) k = do
                    | otherwise  = return ()
 
    -- This generator is uses for the generation of bits
-   gen :: GenIO <- withSystemRandom $ asGenIO return
+   gen :: GenIO <- createSystemRandom
 
    eccs <- liftM concat
             $ sequence
