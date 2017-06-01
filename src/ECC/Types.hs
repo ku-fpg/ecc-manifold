@@ -90,6 +90,12 @@ instance Monoid Code where
 
 
 -- | 'BEs' is a summary of bit errors in multiple runs.
+--   For example
+--     * bit errors: 0 | 1 | 2 | 3
+--     * # packets: 97 | 0 | 1 | 2
+-- means there were 97 runs that were perfect, one run that had 2 bit errors,
+-- and 2 runs that had 3 bit errors. In Haskell, BEs [97,0,1,2]
+
 data BEs = BEs ![Int]
         deriving Show
 

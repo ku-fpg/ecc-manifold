@@ -34,9 +34,9 @@ data Enough = BitErrorCount Int
         deriving Show
 
 data TestRun = TestRun 
-       { test_packet_count   :: !Int -- how many packets
-       , test_encode_time    :: !Float
-       , test_decode_time    :: !Float
+       { test_packet_count   :: !Int    -- how many packets
+       , test_encode_time    :: !Float  -- in seconds
+       , test_decode_time    :: !Float  -- in seconds
        , test_ber            :: !BEs
        }
       deriving Show
@@ -80,8 +80,8 @@ eccPrinter opts eccs = do
 
    let rjust n xs = take (n - length xs) (cycle " ") ++ xs
 
+   -- This generator is uses for the bootstrapping
    gen :: GenIO <- withSystemRandom $ asGenIO return
-          -- here is where we would setup any fancy output
 
    start <- getCurrentTime
 
@@ -124,12 +124,16 @@ eccPrinter opts eccs = do
            return accept
 
 
+-- eccTester runs testECC at different ebN0 levels.
 eccTester :: Options -> Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
 eccTester opts (Code _ f) k = do
    print opts
    let debug n msg | n <= verbose opts  = putStrLn msg
                    | otherwise  = return ()
+
+   -- This generator is uses for the generation of bits
    gen :: GenIO <- withSystemRandom $ asGenIO return
+
    eccs <- liftM concat
             $ sequence
             $ map f
@@ -139,27 +143,20 @@ eccTester opts (Code _ f) k = do
    k2 <- k opts eccs
    sequence_
           [ sequence_
-                [ do testECC (verbose opts) ebN0 ecc k2
-{-
-                     debug 1 $ "found " ++ show (sumBEs bers) ++ " bit errors"
-                     est <- nintyFifth gen (message_length ecc) bers
-                     debug 1 $ "Est. BER = " ++ show (estPoint est)
-                     return (ebN0,sizeBEs bers,sumBEs bers,est)
--}
+                [ do testECC (verbose opts) gen ebN0 ecc k2
                 | ebN0 <- ebN0s opts
                 ]
           | ecc <- eccs
           ]
    stopGlobalPool -- TODO: use a local pool instead?
 
--- Running a *multi* run of an ECC, giving a single ECCReport
-testECC :: Int -> EbN0 -> ECC IO -> (ECC IO -> EbN0 -> TestRun -> IO Bool) -> IO ()
-testECC verb ebN0 ecc k = do
+-- Running a *multi* run of an ECC, giving a compounted TestRun result to the
+-- continuation, and stopping when the continuation returns True.
+testECC :: Int -> GenIO -> EbN0 -> ECC IO -> (ECC IO -> EbN0 -> TestRun -> IO Bool) -> IO ()
+testECC verb gen ebN0 ecc k = do
    let debug n msg | n <= verb  = putStrLn msg
                    | otherwise  = return ()
 
-   gen :: GenIO <- withSystemRandom $ asGenIO return
-   -- once for now
    cap <- getNumCapabilities
 
    let ourpar = sequence -- parallel
