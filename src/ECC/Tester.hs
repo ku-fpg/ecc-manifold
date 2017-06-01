@@ -72,7 +72,7 @@ parseOptions (arg:rest) =
 parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000 }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
--- and acccept a value if there are at least 1000 bit errors.
+-- and accept a value if there are at least 1000 bit errors (say).
 eccPrinter :: Options -> [ECC f] -> IO (ECC f -> EbN0 -> TestRun -> IO Bool)
 eccPrinter opts eccs = do
 
