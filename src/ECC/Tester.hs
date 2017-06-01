@@ -20,12 +20,18 @@ import GHC.Conc
 import Control.Concurrent.ParallelIO
 import Numeric
 import Data.Time.Clock
+import qualified Data.UUID as UUID
+import System.Directory
+import qualified Data.Csv as CSV
+import qualified Data.ByteString.Lazy as LBS
+import Statistics.Types (Estimate (..), ConfInt(..), CL, confidenceLevel)
 
 data Options = Options
         { codenames :: [String]
         , ebN0s     :: [EbN0]
         , verbose   :: Int
         , enough    :: Enough
+        , logDir    :: String
         } deriving Show
 
 
@@ -69,10 +75,11 @@ parseOptions (arg:rest) =
           _                 -> opts { codenames = arg : codenames opts }
   where
      opts = parseOptions rest
-parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000 }
+parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = "log" }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and accept a value if there are at least 1000 bit errors (say).
+-- We also output a log file into a diretory, using a UUID style file.
 eccPrinter :: Options -> [ECC f] -> IO (ECC f -> EbN0 -> TestRun -> IO Bool)
 eccPrinter opts eccs = do
 
@@ -80,10 +87,15 @@ eccPrinter opts eccs = do
 
    let rjust n xs = take (n - length xs) (cycle " ") ++ xs
 
-   -- This generator is uses for the bootstrapping
+   -- This generator is uses for the bootstrapping, and generating the UUID
    gen :: GenIO <- createSystemRandom
-
    start <- getCurrentTime
+
+   (w1,w2,w3,w4) <- uniform gen
+   let uuid = UUID.fromWords w1 w2 w3 w4
+    
+   createDirectoryIfMissing True $ logDir opts
+   let logFileName = logDir opts ++ "/" ++ UUID.toString uuid
 
    putStrLn $ "#" ++
               rjust 7    "Time" ++ " " ++
@@ -121,6 +133,23 @@ eccPrinter opts eccs = do
                       Nothing -> " 0.00e-0") ++
                     if accept then "." else ","
            hFlush stdout
+
+           -- Log file, with raw data
+           LBS.appendFile logFileName $ CSV.encode [
+               ( realToFrac diff :: Double
+               , name ecc        :: String
+               , ebN0            :: Double
+               , sizeBEs bes     :: Int
+               , tCount          :: Int
+               , tEn             :: Float
+               , tDe             :: Float
+               , sumBEs bes      :: Int
+               , estPoint <$> est
+               , (confIntLDX . estError) <$> est
+               , (confIntUDX . estError) <$> est
+               , (confidenceLevel . confIntCL . estError) <$> est
+               , show bes        :: String
+               )]
            return accept
 
 
