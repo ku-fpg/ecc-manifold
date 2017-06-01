@@ -5,7 +5,7 @@ import qualified Data.Vector.Unboxed as U
 import Statistics.Sample (mean)
 import Statistics.Resampling (resample, fromResample, Estimator(..))
 import Statistics.Resampling.Bootstrap (bootstrapBCA)
-import Statistics.Types (Estimate (..), ConfInt, mkCL, ConfInt(..), significanceLevel)
+import Statistics.Types (Estimate (..), ConfInt, mkCL, ConfInt(..), confidenceLevel)
 import System.Random.MWC (create)
 import System.Random.MWC
 import Numeric
@@ -37,13 +37,13 @@ showEstimate :: Estimate ConfInt Double -> String
 showEstimate est = showEFloat (Just 2) (estPoint est)
                  $ (" +" ++)
                  $ (if confIntLDX estErr == 0 then ("?" ++)
-                    else showsPercent ((confIntUDX estErr) / (estPoint est) - 1))
+                    else showsPercent ((confIntUDX estErr) / (estPoint est)))
                  $ (" -" ++)
                  $ (if confIntUDX estErr == 0 then ("?" ++)
-                    else showsPercent (1 - (confIntLDX estErr) / (estPoint est)))
-                 $ (" [" ++)
-                 $ showsPercent (significanceLevel (confIntCL estErr))
-                 $ "]"
+                    else showsPercent ((confIntLDX estErr) / (estPoint est)))
+                 $ (" " ++)
+                 $ showsPercent (confidenceLevel (confIntCL estErr))
+                 $ ""
   where
     estErr = estError est
 
