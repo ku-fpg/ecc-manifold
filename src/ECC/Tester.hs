@@ -40,8 +40,7 @@ data Enough = BitErrorCount Int
         deriving Show
 
 data TestRun = TestRun 
-       { test_packet_count   :: !Int    -- how many packets
-       , test_encode_time    :: !Float  -- in seconds
+       { test_encode_time    :: !Float  -- in seconds
        , test_decode_time    :: !Float  -- in seconds
        , test_ber            :: !BEs
        }
@@ -49,9 +48,9 @@ data TestRun = TestRun
 
 
 instance Monoid TestRun where
-    mempty = TestRun 0 0 0 mempty
-    TestRun p1 en1 de1 ber1 `mappend` TestRun p2 en2 de2 ber2 
-        = TestRun (p1 + p2) (en1 + en2) (de1 + de2) (ber1 `mappend` ber2)
+    mempty = TestRun 0 0 mempty
+    TestRun en1 de1 ber1 `mappend` TestRun en2 de2 ber2 
+        = TestRun (en1 + en2) (de1 + de2) (ber1 `mappend` ber2)
     
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
 eccMain :: Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
@@ -108,7 +107,7 @@ eccPrinter opts eccs = do
               rjust 8    "BER" ++ " " ++
               ""
 
-   return $ \  ecc ebN0 (TestRun tCount tEn tDe bes) -> do
+   return $ \  ecc ebN0 (TestRun tEn tDe bes) -> do
            est <- if sizeBEs bes <= 2
                   then return Nothing
                   else estimate gen 0.95 (message_length ecc) bes
@@ -125,8 +124,8 @@ eccPrinter opts eccs = do
                     rjust tab1 (name ecc) ++ " " ++
                     rjust 5 (showFFloat (Just 2) ebN0 "") ++ " " ++
                     rjust 8 (show (sizeBEs bes)) ++ " " ++
-                    rjust 10 (showFFloat (Just 4) (fromIntegral tCount/tEn) "") ++ " " ++
-                    rjust 10 (showFFloat (Just 4) (fromIntegral tCount/tDe) "") ++ " " ++
+                    rjust 10 (showFFloat (Just 4) (fromIntegral (sizeBEs bes)/tEn) "") ++ " " ++
+                    rjust 10 (showFFloat (Just 4) (fromIntegral (sizeBEs bes)/tDe) "") ++ " " ++
                     rjust 8 (show (sumBEs bes)) ++ " " ++
                     (case est of
                       Just e -> " " ++ rjust 20 (showEstimate e)
@@ -140,7 +139,6 @@ eccPrinter opts eccs = do
                , name ecc        :: String
                , ebN0            :: Double
                , sizeBEs bes     :: Int
-               , tCount          :: Int
                , tEn             :: Float
                , tDe             :: Float
                , sumBEs bes      :: Int
@@ -251,8 +249,8 @@ runECC verb gen ebN0 ecc = do
 
   end_decoding <- getCurrentTime
   
-  return $ TestRun 1 (realToFrac $ diffUTCTime end_encoding start_encoding)
-                     (realToFrac $ diffUTCTime end_decoding start_decoding) 
+  return $ TestRun (realToFrac $ diffUTCTime end_encoding start_encoding)
+                   (realToFrac $ diffUTCTime end_decoding start_decoding) 
          $ eventBEs bitErrorCount
 
 {-
