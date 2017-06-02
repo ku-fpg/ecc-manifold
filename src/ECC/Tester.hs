@@ -113,7 +113,7 @@ eccPrinter opts eccs = do
 
    putStrLn $ "#" ++
               rjust 7    "Time" ++ " " ++
-              rjust tab1 "EEC" ++ " " ++
+              rjust tab1 "ECC" ++ " " ++
               rjust 5    "EbN0" ++ " " ++
               rjust 8    "Packets" ++ " " ++
               rjust 10   "Encode/s" ++ " " ++
