@@ -96,6 +96,21 @@ eccPrinter opts eccs = do
    createDirectoryIfMissing True $ logDir opts
    let logFileName = logDir opts ++ "/" ++ UUID.toString uuid
 
+   LBS.writeFile logFileName $ CSV.encode [
+               [ "Time"
+               , "EEC"
+               , "EbN0"
+               , "Packets"
+               , "Encodes"
+               , "Decodes"
+               , "Errors"
+               , "BER"
+               , "LDX"
+               , "UDX"
+               , "Confidence"
+               , "Internal"
+               ]]
+
    putStrLn $ "#" ++
               rjust 7    "Time" ++ " " ++
               rjust tab1 "EEC" ++ " " ++
