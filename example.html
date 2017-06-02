@@ -1,0 +1,116 @@
+<head>
+  <!-- Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+  
+  <div id="myDiv" style="width: 480px; height: 400px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <script>
+//Plotly.d3.csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv', function(err, rows){
+//console.log(Plotly.d3.csv.parseRows('x.csv'));
+Plotly.d3.csv('log/d7d78b9e-b194-1de1-4d2f-7cf8acd5fa46')
+  .row(function(d) { return {
+          Time:    +d.Time,
+          ECC:      d.ECC,
+          EbN0:    +d.EbN0,
+          Packets: +d.Packets,
+          Encodes: +d.Encodes,
+          Decodes: +d.Decodes,
+          Errors:  +d.Errors,
+          BER:     +d.BER,
+          LDX:     +d.LDX,
+          UDX:     +d.UDX,
+          Confidence: +d.Confidence,
+          Internal: d.Internal
+        }
+  })
+  .get(function(error, rows) { 
+
+    // First, pick the best one
+
+    var points = {};
+    var eccs = [];
+
+    rows.sort(function(a,b) {
+      if (a.ECC < b.ECC) { return -1; }
+      if (a.ECC > b.ECC) { return 1; }
+      if (a.EbN0 < b.EbN0) { return -1; }
+      if (a.EbN0 > b.EbN0) { return 1; }
+      if (a.Packets < b.Packets) { return -1; }
+      if (a.Packets > b.Packets) { return 1; }
+      return 0;
+    });
+
+    rows.forEach(function(d) {
+            console.log(d);            
+       if(eccs.indexOf(d.ECC) == -1) {
+               eccs.push(d.ECC);
+       }       
+       var nm = d.ECC + "_" + d.EbN0;
+       if (points[nm] && points[nm] > d.Packets) {
+               return;
+       }
+       points[nm] = d.Packets;
+    });
+
+    var rows = rows.filter(function(d) {
+            console.log(d);            
+       var nm = d.ECC + "_" + d.EbN0;
+       return (points[nm] == d.Packets);
+    });
+     
+    // Now rows has only the rows we are going to render
+    
+    // First, do the classic bit error rates.
+        
+    var data = eccs.map(function(code) {
+            var set = { x: [], y: [], type: 'scatter',
+                  error_y: {
+                          type: 'data',
+                          symmetric: false,
+                          array: [],
+                          arrayminus: []
+                  }
+            };
+
+            rows.forEach(function(d) {
+                    console.log(d.ECC,code);
+                    if(d.ECC != code) return;
+                    set.x.push(d.EbN0);
+                    set.y.push(d.BER);
+                    set.error_y.array.push(d.UDX);                    
+                    set.error_y.arrayminus.push(d.LDX);
+            });
+            return set;
+    });
+
+    console.log(data);
+    console.log(eccs);
+    console.log(points);
+
+
+        
+    console.log(rows);
+
+var layout = {
+  xaxis: {
+    autorange: true,
+    showgrid: true,
+    zeroline: true
+  },
+  yaxis: {
+    type: 'log',
+    showgrid: true,
+    zeroline: true,
+    showline: true,
+    exponentformat: 'e',
+    showexponent: 'All'
+    }
+};
+
+Plotly.newPlot('myDiv', data, layout);
+});
+  </script>
+</body>
+
