@@ -9,7 +9,7 @@ import qualified Data.Vector.Unboxed  as U
 
 mkUnencoded :: Applicative f => Int -> ECC f
 mkUnencoded n = ECC
-        { name            = "unecoded"
+        { name            = "unecoded/" ++ show n
         , encode          = pure
         , decode          = pure . (,True) . U.map hard
         , message_length  = n
