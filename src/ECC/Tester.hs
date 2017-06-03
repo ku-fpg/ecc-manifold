@@ -98,7 +98,7 @@ eccPrinter opts eccs = do
 
    LBS.writeFile logFileName $ CSV.encode [
                [ "Time"
-               , "EEC"
+               , "ECC"
                , "EbN0"
                , "Packets"
                , "Encodes"
