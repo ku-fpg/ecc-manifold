@@ -32,6 +32,7 @@ data Options = Options
         , verbose   :: Int
         , enough    :: Enough
         , logDir    :: String
+        , cmp       :: Bool
         } deriving Show
 
 
@@ -57,7 +58,7 @@ eccMain :: Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO B
 eccMain code k = do
         args <- getArgs
         if null args
-         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
+         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
                    ++ "\ncodes: " ++ show code
          else eccTester (parseOptions args) code k
 
@@ -68,13 +69,15 @@ parseOptions (('-':'b':ns):rest)
         | all isDigit ns = (parseOptions rest) { enough = BitErrorCount (read ns) }
 parseOptions (('-':'m':ns):rest)
         | all isDigit ns = (parseOptions rest) { enough = MessageCount (read ns) }
+parseOptions ("-c":rest)
+        | otherwise      = (parseOptions rest) { cmp = True }
 parseOptions (arg:rest) =
         case reads arg of
           [(ebN0::EbN0,"")] -> opts { ebN0s = ebN0 : ebN0s opts }
           _                 -> opts { codenames = arg : codenames opts }
   where
      opts = parseOptions rest
-parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = "log" }
+parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = "log", cmp = False }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and accept a value if there are at least 1000 bit errors (say).
@@ -176,11 +179,35 @@ eccTester opts (Code _ f) k = do
    -- This generator is uses for the generation of bits
    gen :: GenIO <- createSystemRandom
 
+   let mg :: (Show a, Show b, Eq b, Monad m) => (a -> m b) -> (a -> m b) -> a -> m b
+       mg f1 f2 a = do
+           r1 <- f1 a
+           r2 <- f2 a
+           if r1 == r2 
+            then return r1
+            else fail $ "merge of two codes failed at runtime" ++ show (a,r1,r2)
+
+   let jn :: Monad m => ECC m -> ECC m -> ECC m
+       jn ecc1 ecc2 
+            | message_length ecc1 /= message_length ecc2 
+             = error "trying to combine two codes with different message lengths"
+            | codeword_length ecc1 /= codeword_length ecc2 
+            = error "trying to combine two codes with different codeword lengths"
+            | otherwise
+            = ECC { name = name ecc1 ++ "/;/" ++ name ecc2
+                  , encode = mg (encode ecc1) (encode ecc2)
+                  , decode = mg (decode ecc1) (decode ecc2)
+                  , message_length = message_length ecc1
+                  , codeword_length = codeword_length ecc2
+                  }
+       
    eccs <- liftM concat
             $ sequence
             $ map f
             $ map splitCodename
             $ codenames opts
+
+   let eccs' = if cmp opts then [foldr1 jn eccs] else eccs
 
    k2 <- k opts eccs
    sequence_
@@ -188,7 +215,7 @@ eccTester opts (Code _ f) k = do
                 [ do testECC (verbose opts) gen ebN0 ecc k2
                 | ebN0 <- ebN0s opts
                 ]
-          | ecc <- eccs
+          | ecc <- eccs'
           ]
    stopGlobalPool -- TODO: use a local pool instead?
 
