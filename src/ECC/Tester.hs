@@ -54,7 +54,7 @@ instance Monoid TestRun where
         = TestRun (en1 + en2) (de1 + de2) (ber1 `mappend` ber2)
     
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
-eccMain :: Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
+eccMain :: Code -> (Options -> [String] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
 eccMain code k = do
         args <- getArgs
         if null args
@@ -82,10 +82,10 @@ parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = Bi
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and accept a value if there are at least 1000 bit errors (say).
 -- We also output a log file into a diretory, using a UUID style file.
-eccPrinter :: Options -> [ECC f] -> IO (ECC f -> EbN0 -> TestRun -> IO Bool)
-eccPrinter opts eccs = do
+eccPrinter :: Options -> [String] -> IO (ECC f -> EbN0 -> TestRun -> IO Bool)
+eccPrinter opts names = do
 
-   let tab1 = maximum (map length (map name eccs))
+   let tab1 = maximum (map length names)
 
    let rjust n xs = take (n - length xs) (cycle " ") ++ xs
 
@@ -170,7 +170,7 @@ eccPrinter opts eccs = do
 
 
 -- eccTester runs testECC at different ebN0 levels.
-eccTester :: Options -> Code -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
+eccTester :: Options -> Code -> (Options -> [String] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
 eccTester opts (Code _ f) k = do
    print opts
    let debug n msg | n <= verbose opts  = putStrLn msg
@@ -209,7 +209,7 @@ eccTester opts (Code _ f) k = do
 
    let eccs' = if cmp opts then [foldr1 jn eccs] else eccs
 
-   k2 <- k opts eccs
+   k2 <- k opts (map name eccs)
    sequence_
           [ sequence_
                 [ do testECC (verbose opts) gen ebN0 ecc k2
@@ -332,3 +332,9 @@ txRx_EbN0 ebnoDB rate gen xs = do
          ec     = fromRational rate
          lc     = 2 * sqrt ec / sigma2
 
+
+
+-- eccMerge merges all the input files.
+--eccMerger :: [String] -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
+--eccMerger filenames k = 
+    
