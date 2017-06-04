@@ -322,7 +322,7 @@ txRx_EbN0 ebnoDB rate gen xs
                                 $ xs
 txRx_EbN0 ebnoDB rate gen xs = do
         rs :: U.Vector Double  <- U.fromList <$> sequence [ standard gen | _ <- U.toList xs ]
-        return $ U.map (* lc)
+        return $ id -- U.map (* lc) -- comment out adding lc
                $ U.zipWith (+) (U.map (* sqrt sigma2) rs)
                                (U.map (* sqrt ec)
                                   $ U.map soft
