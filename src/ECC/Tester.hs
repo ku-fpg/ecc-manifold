@@ -194,7 +194,7 @@ eccTester opts (Code _ f) k = do
             | codeword_length ecc1 /= codeword_length ecc2 
             = error "trying to combine two codes with different codeword lengths"
             | otherwise
-            = ECC { name = name ecc1 ++ "/;/" ++ name ecc2
+            = ECC { name = name ecc1 ++ "+" ++ name ecc2
                   , encode = mg (encode ecc1) (encode ecc2)
                   , decode = mg (decode ecc1) (decode ecc2)
                   , message_length = message_length ecc1
