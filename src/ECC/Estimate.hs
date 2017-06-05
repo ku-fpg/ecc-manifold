@@ -20,18 +20,15 @@ estimate :: GenIO -> Double -> MessageLength -> BEs -> IO (Maybe (Estimate ConfI
 estimate g confidence m_len bes
   | sumBEs bes == 0 = return Nothing
   | otherwise =
-       do resamples <- resample g [Mean] (partitions * 256) sampleU
+       -- 1000 is the default for criterion
+       do resamples <- resample g [Mean] 1000 sampleU
 --          print $ U.length $ fromResample $ head $ resamples
 --          print resamples
           return $ Just $ head $ bootstrapBCA (mkCL confidence) sampleU {- [Mean] -} resamples
   where
-    -- We assume there is a power of 2 size, for the shrinking to work
     sample = map (\ be -> be / fromIntegral m_len)
-           $ sampleBEs partitions bes
+           $ extractBEs bes
     sampleU = U.fromList sample
-    f x = if x <= 256 then x else f (x `div` 2)
-    partitions = f (sizeBEs bes)
---    partitions = min (sizeBEs bes) 256  -- at the most 256 buckets
 
 -- | Show estimate in an understandable format"
 showEstimate :: Estimate ConfInt Double -> String

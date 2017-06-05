@@ -15,7 +15,7 @@ module ECC.Types
           sumBEs,
           sizeBEs,
           eventBEs,
-          sampleBEs,
+          extractBEs,
           -- * General Utils
           hard,
           soft,
@@ -118,30 +118,12 @@ sumBEs (BEs xs) = sum [ n * i | (n,i) <- xs `zip` [0..]]
 sizeBEs :: BEs -> Int
 sizeBEs (BEs xs) = sum xs
 
--- | Build n buckets for the BEs. Each one contains
--- a bit error rate for message length of 1.
--- Assumes that sumBEs bes % n == 0
---
--- Example:
---
---  * sampleBEs 1 bes gets the current bit error rate (for message length == 1).
---
---  * sampleBEs 256 bes gets 256 buckets, each one with a representative bit error rate.
---
--- Property:
---
---  * average (sampleBEs n bes) == average (sampleBEs m bes)  (for reasonable n,m)
---
-sampleBEs :: Int -> BEs -> [Double]
-sampleBEs n b@(BEs (zeros:bes)) = map sum' $ transpose $ unfoldr f xs
-   where
-        bes' = (zeros `mod` n) : bes
-        f ys = case (take n ys, drop n ys) of
-                 (vs,ws) | length vs == 0 -> Nothing
-                         | length vs < n  -> error $ "bad bucket size for sampleBEs" ++ show (n,b)
-                         | otherwise      -> Just (vs,ws)
-        xs = concat $ zipWith (\ n i -> take n (repeat i)) bes' [0..]
-        sum' xs = fromIntegral (sum xs) / (fromIntegral (length xs + (zeros `div` n)))
+-- | Extract all the packet bit errors.
+extractBEs :: BEs -> [Double]
+extractBEs b@(BEs bes) = expand 0 bes
+  where
+     expand i [] = []
+     expand i (x:xs) = take x (repeat i) ++ expand (i+1) xs
 
 
 -- | turn an event with a specific number of bit errors (possibly 0),
