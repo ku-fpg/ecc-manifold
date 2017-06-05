@@ -133,7 +133,7 @@ sizeBEs (BEs xs) = sum xs
 --  * average (sampleBEs n bes) == average (sampleBEs m bes)  (for reasonable n,m)
 --
 sampleBEs :: Int -> BEs -> [Double]
-sampleBEs n (BEs (zeros:bes)) = map sum' $ transpose $ unfoldr f xs
+sampleBEs n b@(BEs (zeros:bes)) = map sum' $ transpose $ unfoldr f xs
    where
         bes' = (zeros `mod` n) : bes
         f ys = case (take n ys, drop n ys) of
