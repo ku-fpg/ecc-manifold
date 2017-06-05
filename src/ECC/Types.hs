@@ -97,7 +97,7 @@ instance Monoid Code where
 -- and 2 runs that had 3 bit errors. In Haskell, BEs [97,0,1,2]
 
 data BEs = BEs ![Int]
-        deriving Show
+        deriving (Read, Show)
 
 -- A space efficent version of
 instance Monoid BEs where

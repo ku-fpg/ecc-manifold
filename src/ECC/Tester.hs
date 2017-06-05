@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
-module ECC.Tester (eccMain, eccPrinter) where
+module ECC.Tester (eccMain, eccPrinter, eccMerger) where
 
 import ECC.Types
 import System.Random.MWC
@@ -8,6 +8,7 @@ import Control.Monad
 import Control.Monad.Trans (MonadIO(liftIO))
 import Control.Concurrent
 import Data.Word
+import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed  as U
 import System.Random.MWC.Distributions
 import Data.Monoid
@@ -25,6 +26,9 @@ import System.Directory
 import qualified Data.Csv as CSV
 import qualified Data.ByteString.Lazy as LBS
 import Statistics.Types (Estimate (..), ConfInt(..), CL, confidenceLevel)
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict (Map)
+import Data.List as List
 
 data Options = Options
         { codenames :: [String]
@@ -41,8 +45,8 @@ data Enough = BitErrorCount Int
         deriving Show
 
 data TestRun = TestRun 
-       { test_encode_time    :: !Float  -- in seconds
-       , test_decode_time    :: !Float  -- in seconds
+       { test_encode_time    :: !Double  -- in seconds
+       , test_decode_time    :: !Double -- in seconds
        , test_ber            :: !BEs
        }
       deriving Show
@@ -99,21 +103,8 @@ eccPrinter opts names = do
    createDirectoryIfMissing True $ logDir opts
    let logFileName = logDir opts ++ "/" ++ UUID.toString uuid
 
-   LBS.writeFile logFileName $ CSV.encode [
-               [ "Time"
-               , "ECC"
-               , "EbN0"
-               , "Packets"
-               , "Encodes"
-               , "Decodes"
-               , "Errors"
-               , "BER"
-               , "LDX"
-               , "UDX"
-               , "Confidence"
-               , "Internal"
-               ]]
-
+   writeHeader logFileName
+   
    putStrLn $ "#" ++
               rjust 7    "Time" ++ " " ++
               rjust tab1 "ECC" ++ " " ++
@@ -152,20 +143,22 @@ eccPrinter opts names = do
            hFlush stdout
 
            -- Log file, with raw data
-           LBS.appendFile logFileName $ CSV.encode [
-               ( realToFrac diff :: Double
-               , name ecc        :: String
-               , ebN0            :: Double
-               , sizeBEs bes     :: Int
-               , tEn             :: Float
-               , tDe             :: Float
-               , sumBEs bes      :: Int
-               , estPoint <$> est
-               , (confIntLDX . estError) <$> est
-               , (confIntUDX . estError) <$> est
-               , (confidenceLevel . confIntCL . estError) <$> est
-               , show bes        :: String
-               )]
+           LBS.appendFile logFileName $ CSV.encode [ Result
+               ( realToFrac diff :: Double )
+               ( name ecc        :: String )
+               ( ebN0            :: Double ) 
+               ( sizeBEs bes     :: Int ) 
+               ( tEn        )
+               ( tDe        )
+               ( sumBEs bes      :: Int )
+               ( estPoint <$> est )
+               ( (confIntLDX . estError) <$> est )
+               ( (confIntUDX . estError) <$> est )
+               ( (confidenceLevel . confIntCL . estError) <$> est )
+               ( message_length ecc )
+               ( codeword_length ecc )
+               ( bes )
+               ]
            return accept
 
 
@@ -335,6 +328,126 @@ txRx_EbN0 ebnoDB rate gen xs = do
 
 
 -- eccMerge merges all the input files.
---eccMerger :: [String] -> (Options -> [ECC IO] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
---eccMerger filenames k = 
-    
+eccMerger :: IO ()
+eccMerger = do
+    args <- getArgs
+    if null args
+     then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-c] log/<file> log/<file>"
+     else do
+       let opts = parseOptions args
+--       print opts   
+       -- now we try load the files.
+       logs <- sequence 
+         [ do bs <- LBS.readFile nm
+              case CSV.decode CSV.HasHeader bs of
+                Left msg -> fail msg
+                Right t  -> return $ V.toList $ (t :: V.Vector Result)
+         | nm <- codenames opts
+         ]
+      
+       -- first, pick only the final results. We can not merge partual with final results.
+       let sumMe :: Result -> Map String (Map Double Result) -> Map String (Map Double Result) 
+           sumMe r m = flip (Map.insert (res_name r)) m $
+                   case Map.lookup (res_name r) m of
+                     Nothing -> Map.singleton (res_ebN0 r) r
+                     Just m' -> flip (Map.insert (res_ebN0 r)) m' $
+                       case Map.lookup (res_ebN0 r) m' of
+                         Nothing -> r
+                         Just r' | res_size r >= res_size r' -> r
+                                 | otherwise                 -> r'
+
+       let logs' = map (foldr sumMe Map.empty) logs
+       -- next, merge the different runs
+       let mergeRes :: Result -> Result -> Result
+           mergeRes r1 r2 = r1 
+              { timestamp = 0.0
+              , res_size = res_size r1 + res_size r2
+              , res_tEn  = res_tEn r1 + res_tEn r2
+              , res_tDe  = res_tDe r1 + res_tDe r2
+              , res_sum  = res_sum r1 + res_sum r2
+              , res_ber  = Nothing
+              , res_ldx  = Nothing
+              , res_udx  = Nothing
+              , res_conf = Nothing
+              , res_bes  = res_bes r1 <> res_bes r2
+              }
+       let sumLog = Map.unionsWith (Map.unionWith mergeRes) logs'
+--       print sumLog
+
+       -- setup the printer
+
+       -- Options -> [String] -> IO (ECC f -> EbN0 -> TestRun -> IO Bool)
+       p <- eccPrinter opts (Map.keys sumLog)
+
+       sequence_ [ do
+         sequence_ [ p ecc db testrun
+                   | db <- List.sort $ Map.keys m
+                   , let r = m Map.! db
+                     -- These are both fake, for the purposes of the log printing
+                   , let ecc = ECC (res_name r) undefined undefined (res_mesg r) (res_code r)
+                   , let testrun = TestRun (res_tEn r) (res_tDe r) (res_bes r)
+                   ]
+                 | (nm,m) <- Map.toList sumLog
+                 ]
+       
+data Result = Result
+ { timestamp  :: Double
+ , res_name   :: String
+ , res_ebN0   :: Double
+ , res_size   :: Int     -- number of packets tested
+ , res_tEn    :: Double
+ , res_tDe    :: Double
+ , res_sum    :: Int     -- total bit errors
+ , res_ber    :: Maybe Double
+ , res_ldx    :: Maybe Double
+ , res_udx    :: Maybe Double
+ , res_conf   :: Maybe Double
+ , res_mesg   :: Int        -- length of message
+ , res_code   :: Int        -- length of codeword
+ , res_bes    :: BEs
+ } deriving Show
+
+instance CSV.ToRecord Result where
+    toRecord (Result a b c d e f g h i j k l m n) = V.fromList [
+        CSV.toField a, CSV.toField b, CSV.toField c, CSV.toField d, CSV.toField e, CSV.toField f,
+        CSV.toField g, CSV.toField h, CSV.toField i, CSV.toField j, CSV.toField k, CSV.toField l,
+        CSV.toField m, CSV.toField (show n)]
+
+instance CSV.FromRecord Result where
+    parseRecord v
+        | n == 14    = Result        <$> CSV.unsafeIndex v 0
+                                     <*> CSV.unsafeIndex v 1
+                                     <*> CSV.unsafeIndex v 2
+                                     <*> CSV.unsafeIndex v 3
+                                     <*> CSV.unsafeIndex v 4
+                                     <*> CSV.unsafeIndex v 5
+                                     <*> CSV.unsafeIndex v 6
+                                     <*> CSV.unsafeIndex v 7
+                                     <*> CSV.unsafeIndex v 8
+                                     <*> CSV.unsafeIndex v 9
+                                     <*> CSV.unsafeIndex v 10
+                                     <*> CSV.unsafeIndex v 11
+                                     <*> CSV.unsafeIndex v 12
+                                     <*> (read <$> CSV.unsafeIndex v 13)
+        | otherwise = fail "Fail to read Result"
+          where
+            n = V.length v
+
+writeHeader :: String -> IO ()
+writeHeader logFileName = 
+   LBS.writeFile logFileName $ CSV.encode [
+               [ "Time"
+               , "ECC"
+               , "EbN0"
+               , "Packets"
+               , "Encodes"
+               , "Decodes"
+               , "Errors"
+               , "BER"
+               , "LDX"
+               , "UDX"
+               , "Confidence"
+               , "Message"
+               , "Codeword"
+               , "Internal"
+               ]]
