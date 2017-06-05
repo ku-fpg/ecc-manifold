@@ -138,7 +138,7 @@ sampleBEs n (BEs (zeros:bes)) = map sum' $ transpose $ unfoldr f xs
         bes' = (zeros `mod` n) : bes
         f ys = case (take n ys, drop n ys) of
                  (vs,ws) | length vs == 0 -> Nothing
-                         | length vs < n  -> error "bad bucket size for sampleBEs"
+                         | length vs < n  -> error $ "bad bucket size for sampleBEs" ++ show (n,b)
                          | otherwise      -> Just (vs,ws)
         xs = concat $ zipWith (\ n i -> take n (repeat i)) bes' [0..]
         sum' xs = fromIntegral (sum xs) / (fromIntegral (length xs + (zeros `div` n)))
