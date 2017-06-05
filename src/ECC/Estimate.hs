@@ -28,9 +28,10 @@ estimate g confidence m_len bes
     -- We assume there is a power of 2 size, for the shrinking to work
     sample = map (\ be -> be / fromIntegral m_len)
            $ sampleBEs partitions bes
-    p xs = length xs > (2 ^ 12) -- todo, stop of not power of 2
     sampleU = U.fromList sample
-    partitions = min (sizeBEs bes) 256  -- at the most 256 buckets
+    f x = if x <= 256 then x else f (x `div` 2)
+    partitions = f (sizeBEs bes)
+--    partitions = min (sizeBEs bes) 256  -- at the most 256 buckets
 
 -- | Show estimate in an understandable format"
 showEstimate :: Estimate ConfInt Double -> String
