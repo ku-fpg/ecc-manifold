@@ -62,7 +62,7 @@ eccMain :: Code -> (Options -> [String] -> IO (ECC IO -> EbN0 -> TestRun -> IO B
 eccMain code k = do
         args <- getArgs
         if null args
-         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
+         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<dir>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
                    ++ "\ncodes: " ++ show code
          else eccTester (parseOptions args) code k
 
@@ -73,6 +73,8 @@ parseOptions (('-':'b':ns):rest)
         | all isDigit ns = (parseOptions rest) { enough = BitErrorCount (read ns) }
 parseOptions (('-':'m':ns):rest)
         | all isDigit ns = (parseOptions rest) { enough = MessageCount (read ns) }
+parseOptions (('-':'l':lg):rest)
+        | otherwise = (parseOptions rest) { logDir = lg }
 parseOptions ("-c":rest)
         | otherwise      = (parseOptions rest) { cmp = True }
 parseOptions (arg:rest) =
