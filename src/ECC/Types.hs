@@ -26,14 +26,14 @@ import Control.Monad
 import Data.List (unfoldr, transpose)
 import Data.Monoid
 import qualified Data.Vector.Unboxed  as U
-
+import Data.Ratio
 
 -----------------------------------------------------------------------------
 -- Regarding Common Synomyns
 
 type MessageLength      = Int          -- the size of the message
 type CodewordLength     = Int          -- the size of the message + parity bits
-type Rate               = Rational     -- message size / codeword size
+type Rate               = Ratio Int    -- message size / codeword size
 type EbN0               = Double       -- noise
 
 -----------------------------------------------------------------------------
@@ -66,8 +66,8 @@ data ECC m = ECC
      }
 
 -- | compute the rate of an 'ECC'.
-rateOf :: ECC IO -> Rational
-rateOf ecc = fromIntegral (message_length ecc) / fromIntegral (codeword_length ecc)
+rateOf :: ECC IO -> Ratio Int
+rateOf ecc = message_length ecc % codeword_length ecc
 
 -----------------------------------------------------------------------------
 -- Regarding Code

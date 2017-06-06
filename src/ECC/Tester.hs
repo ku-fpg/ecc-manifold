@@ -29,6 +29,7 @@ import Statistics.Types (Estimate (..), ConfInt(..), CL, confidenceLevel)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Data.List as List
+import Data.Ratio
 
 data Options = Options
         { codenames :: [String]
@@ -324,7 +325,7 @@ txRx_EbN0 ebnoDB rate gen xs = do
                                   $ xs)
      where
          sigma2 = ((1/10) ** (ebnoDB/10)) / 2
-         ec     = fromRational rate
+         ec     = fromIntegral (numerator rate) / fromIntegral (denominator rate)
          lc     = 2 * sqrt ec / sigma2
 
 
