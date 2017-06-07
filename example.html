@@ -5,11 +5,20 @@
 
 <body>
   
-  <div id="myDiv" style="width: 480px; height: 400px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+  <div id="myDiv" style="width: 880px; height: 400px;"><!-- Plotly chart will be drawn inside this DIV --></div>
   <script>
-//Plotly.d3.csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv', function(err, rows){
-//console.log(Plotly.d3.csv.parseRows('x.csv'));
-Plotly.d3.csv('log/d7d78b9e-b194-1de1-4d2f-7cf8acd5fa46')
+// From https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+var log = getParameterByName("log");
+Plotly.d3.csv(log)
   .row(function(d) { return {
           Time:    +d.Time,
           ECC:      d.ECC,
@@ -43,7 +52,6 @@ Plotly.d3.csv('log/d7d78b9e-b194-1de1-4d2f-7cf8acd5fa46')
     });
 
     rows.forEach(function(d) {
-            console.log(d);            
        if(eccs.indexOf(d.ECC) == -1) {
                eccs.push(d.ECC);
        }       
@@ -55,7 +63,6 @@ Plotly.d3.csv('log/d7d78b9e-b194-1de1-4d2f-7cf8acd5fa46')
     });
 
     var rows = rows.filter(function(d) {
-            console.log(d);            
        var nm = d.ECC + "_" + d.EbN0;
        return (points[nm] == d.Packets);
     });
@@ -71,11 +78,11 @@ Plotly.d3.csv('log/d7d78b9e-b194-1de1-4d2f-7cf8acd5fa46')
                           symmetric: false,
                           array: [],
                           arrayminus: []
-                  }
+                  },
+                  name: code
             };
 
             rows.forEach(function(d) {
-                    console.log(d.ECC,code);
                     if(d.ECC != code) return;
                     set.x.push(d.EbN0);
                     set.y.push(d.BER);
@@ -84,14 +91,6 @@ Plotly.d3.csv('log/d7d78b9e-b194-1de1-4d2f-7cf8acd5fa46')
             });
             return set;
     });
-
-    console.log(data);
-    console.log(eccs);
-    console.log(points);
-
-
-        
-    console.log(rows);
 
 var layout = {
   xaxis: {
