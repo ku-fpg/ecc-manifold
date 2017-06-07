@@ -63,7 +63,7 @@ eccMain :: Code -> (Options -> [String] -> IO (ECC IO -> EbN0 -> TestRun -> IO B
 eccMain code k = do
         args <- getArgs
         if null args
-         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<dir>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
+         then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<file or dir/>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
                    ++ "\ncodes: " ++ show code
          else eccTester (parseOptions args) code k
 
@@ -103,8 +103,11 @@ eccPrinter opts names = do
    (w1,w2,w3,w4) <- uniform gen
    let uuid = UUID.fromWords w1 w2 w3 w4
     
-   createDirectoryIfMissing True $ logDir opts
-   let logFileName = logDir opts ++ "/" ++ UUID.toString uuid
+   logFileName <- if last (logDir opts) == '/' then do
+       createDirectoryIfMissing True $ logDir opts
+       return $ logDir opts ++ UUID.toString uuid
+     else
+       return $ logDir opts 
 
    writeHeader logFileName
    
@@ -335,7 +338,7 @@ eccMerger :: IO ()
 eccMerger = do
     args <- getArgs
     if null args
-     then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-c] log/<file> log/<file>"
+     then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<file or dir/>] [-c] log/<file> log/<file>"
      else do
        let opts = parseOptions args
 --       print opts   
