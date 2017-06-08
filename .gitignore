@@ -3,3 +3,4 @@ dist/
 .*.swp
 .stack-work/
 log/
+logs/
