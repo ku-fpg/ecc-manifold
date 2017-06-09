@@ -36,8 +36,9 @@ data Options = Options
         , ebN0s     :: [EbN0]
         , verbose   :: Int
         , enough    :: Enough
-        , logDir    :: String
+        , logDir    :: FilePath -- directory or file to put the log
         , cmp       :: Bool
+        , replay    :: Maybe FilePath -- file to run replays
         } deriving Show
 
 
@@ -76,6 +77,8 @@ parseOptions (('-':'m':ns):rest) o
         | all isDigit ns = (parseOptions rest o) { enough = MessageCount (read ns) }
 parseOptions (('-':'l':lg):rest) o
         | otherwise = (parseOptions rest o) { logDir = lg }
+parseOptions (('-':'r':r):rest) o
+        | otherwise = (parseOptions rest o) { replay = Just r }
 parseOptions ("-c":rest) o
         | otherwise       = (parseOptions rest o) { cmp = True }
 parseOptions (arg:rest) o =
@@ -87,7 +90,15 @@ parseOptions (arg:rest) o =
 parseOptions [] o = o
 
 defaultOptions :: String -> Options
-defaultOptions d = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = d, cmp = False }
+defaultOptions d = Options { 
+    codenames = [],
+    ebN0s = [],
+    verbose = 0,
+    enough = BitErrorCount 1000,
+    logDir = d,
+    cmp = False,
+    replay = Nothing 
+  }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and accept a value if there are at least 1000 bit errors (say).
@@ -212,6 +223,11 @@ eccTester opts (Code _ f) k = do
    let eccs' = if cmp opts then [foldr1 jn eccs] else eccs
 
    k2 <- k opts (map name eccs)
+
+   -- First, try replay (which have fixed EbN0s)
+   -- ...
+   
+   -- Then, loop over all given EbN0s.
    sequence_
           [ sequence_
                 [ do testECC (verbose opts) gen ebN0 ecc k2
