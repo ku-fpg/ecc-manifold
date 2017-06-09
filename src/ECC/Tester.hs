@@ -273,7 +273,14 @@ runECC verb gen ebN0 ecc = do
   debug 3 $ "tx/rx'd message"
   debug 4 $ show (RxCodeword rx)
 
+  rxECC verb ecc mess0 (realToFrac $ diffUTCTime end_encoding start_encoding) rx 
   
+rxECC :: Int -> ECC IO -> U.Vector Bool -> Double -> U.Vector Double -> IO TestRun
+rxECC verb ecc mess0 encoding_time rx = do
+
+  let debug n msg | n <= verb  = putStrLn msg
+                  | otherwise  = return ()
+
   start_decoding <- getCurrentTime
   
   !(!mess1,parity) <- decode ecc rx
@@ -290,9 +297,12 @@ runECC verb gen ebN0 ecc = do
 
   end_decoding <- getCurrentTime
   
-  return $ TestRun (realToFrac $ diffUTCTime end_encoding start_encoding)
+  return $ TestRun encoding_time
                    (realToFrac $ diffUTCTime end_decoding start_decoding) 
          $ eventBEs bitErrorCount
+
+
+
 
 {-
 
@@ -313,6 +323,8 @@ runECC verb gen ebN0 ecc = do
         noise  = sqrt(Sigma2)*randn(size(s));
         r(1:n) = s + noise;
 -}
+
+
 
 -- Adding randomness
 txRx_EbN0 :: EbN0 -> Rate -> GenIO -> U.Vector Bool -> IO (U.Vector Double)
