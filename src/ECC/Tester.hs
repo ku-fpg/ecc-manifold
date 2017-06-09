@@ -65,26 +65,29 @@ eccMain code k = do
         if null args
          then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<file or dir/>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
                    ++ "\ncodes: " ++ show code
-         else eccTester (parseOptions args) code k
+         else eccTester (parseOptions args $ defaultOptions "log/") code k
 
-parseOptions :: [String] -> Options
-parseOptions (('-':'v':ns):rest)
-        | all isDigit ns = (parseOptions rest) { verbose = read ns }
-parseOptions (('-':'b':ns):rest)
-        | all isDigit ns = (parseOptions rest) { enough = BitErrorCount (read ns) }
-parseOptions (('-':'m':ns):rest)
-        | all isDigit ns = (parseOptions rest) { enough = MessageCount (read ns) }
-parseOptions (('-':'l':lg):rest)
-        | otherwise = (parseOptions rest) { logDir = lg }
-parseOptions ("-c":rest)
-        | otherwise      = (parseOptions rest) { cmp = True }
-parseOptions (arg:rest) =
+parseOptions :: [String] -> Options -> Options
+parseOptions (('-':'v':ns):rest) o
+        | all isDigit ns = (parseOptions rest o) { verbose = read ns }
+parseOptions (('-':'b':ns):rest) o
+        | all isDigit ns = (parseOptions rest o) { enough = BitErrorCount (read ns) }
+parseOptions (('-':'m':ns):rest) o
+        | all isDigit ns = (parseOptions rest o) { enough = MessageCount (read ns) }
+parseOptions (('-':'l':lg):rest) o
+        | otherwise = (parseOptions rest o) { logDir = lg }
+parseOptions ("-c":rest) o
+        | otherwise       = (parseOptions rest o) { cmp = True }
+parseOptions (arg:rest) o =
         case reads arg of
           [(ebN0::EbN0,"")] -> opts { ebN0s = ebN0 : ebN0s opts }
           _                 -> opts { codenames = arg : codenames opts }
   where
-     opts = parseOptions rest
-parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = "log/", cmp = False }
+     opts = parseOptions rest o
+parseOptions [] o = o
+
+defaultOptions :: String -> Options
+defaultOptions d = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = d, cmp = False }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and accept a value if there are at least 1000 bit errors (say).
@@ -352,7 +355,7 @@ eccMerger = do
     if null args
      then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<file or dir/>] [-c] log/<file> log/<file>"
      else do
-       let opts = parseOptions args
+       let opts = parseOptions args $ defaultOptions "merge/"
 --       print opts   
        -- now we try load the files.
        logs <- sequence 
