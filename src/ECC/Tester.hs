@@ -84,7 +84,7 @@ parseOptions (arg:rest) =
           _                 -> opts { codenames = arg : codenames opts }
   where
      opts = parseOptions rest
-parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = "log", cmp = False }
+parseOptions [] = Options { codenames = [], ebN0s = [], verbose = 0, enough = BitErrorCount 1000, logDir = "log/", cmp = False }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
 -- and accept a value if there are at least 1000 bit errors (say).
