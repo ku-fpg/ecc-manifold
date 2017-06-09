@@ -259,19 +259,19 @@ runECC verb gen ebN0 ecc = do
   debug 3 $ "starting message"
   !mess0  <- liftM U.fromList $ sequence [ uniform gen | _ <- [1..message_length ecc]]
   debug 3 $ "generated message"
-  debug 4 $ show mess0
+  debug 4 $ show (Message mess0)
 
   start_encoding <- getCurrentTime
 
   !code0  <- encode ecc mess0
   debug 3 $ "encoded message"
-  debug 4 $ show code0
+  debug 4 $ show (TxCodeword code0)
 
   end_encoding <- getCurrentTime
 
   !rx <- txRx_EbN0 ebN0 (rateOf ecc) gen code0
   debug 3 $ "tx/rx'd message"
-  debug 4 $ show rx
+  debug 4 $ show (RxCodeword rx)
 
   
   start_decoding <- getCurrentTime
@@ -280,7 +280,7 @@ runECC verb gen ebN0 ecc = do
 
   debug 3 $ "decoded message"
   debug 4 $ "parity: " ++ show parity
-  debug 4 $ show mess1
+  debug 4 $ show (Decoded (name ecc) mess1)
 
   when (U.length mess0 /= U.length mess1) $ do
     error $ "before and after codeword different lengths" ++ show (U.length mess0,U.length mess1)

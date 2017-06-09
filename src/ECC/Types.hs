@@ -4,6 +4,7 @@ module ECC.Types
           ECC(..),
           Code(..),
           BEs,          -- abstract
+          Log(..),
           -- * Type Synonyms
           MessageLength,
           CodewordLength,
@@ -151,3 +152,14 @@ soft True  = 1
 -- | compute the bit error rate inside a 'BEs', for a specific 'ECC'.
 bitErrorRate :: ECC f -> BEs -> Double
 bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * message_length ecc))
+
+--------------------------------------------
+
+-- A serializable log.
+data Log 
+ = Message (U.Vector Bool)         -- the unencoded packet
+ | TxCodeword (U.Vector Bool)      -- the encoded packet
+ | RxCodeword (U.Vector Double)    -- the encoded packet, after rx/tx (the soft value has lc multiplied in)
+ | Decoded String (U.Vector Bool)  -- the packet after decoding (should be the same as the Message)
+ deriving (Read,Show)
+
