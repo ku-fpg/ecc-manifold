@@ -274,7 +274,7 @@ runECC verb gen ebN0 ecc = do
 
   !rx <- txRx_EbN0 ebN0 (rateOf ecc) gen code0
   debug 3 $ "tx/rx'd message"
-  debug 4 $ show (RxCodeword rx)
+  debug 4 $ show (RxCodeword ebN0 rx)
 
   rxECC verb ecc mess0 (realToFrac $ diffUTCTime end_encoding start_encoding) rx 
   

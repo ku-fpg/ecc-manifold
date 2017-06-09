@@ -157,9 +157,9 @@ bitErrorRate ecc bes = fromIntegral (sumBEs bes) / (fromIntegral (sizeBEs bes * 
 
 -- A serializable log.
 data Log 
- = Message (U.Vector Bool)         -- the unencoded packet
- | TxCodeword (U.Vector Bool)      -- the encoded packet
- | RxCodeword (U.Vector Double)    -- the encoded packet, after rx/tx (the soft value has lc multiplied in)
- | Decoded String (U.Vector Bool)  -- the packet after decoding (should be the same as the Message)
+ = Message (U.Vector Bool)            -- the unencoded packet
+ | TxCodeword (U.Vector Bool)         -- the encoded packet
+ | RxCodeword EbN0 (U.Vector Double)  -- the encoded packet, after rx/tx (the soft value has lc multiplied in)
+ | Decoded String (U.Vector Bool)     -- the packet after decoding (should be the same as the Message)
  deriving (Read,Show)
 
