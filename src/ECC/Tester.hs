@@ -30,6 +30,7 @@ import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Data.List as List
 import Data.Ratio
+import Text.Read
 
 data Options = Options
         { codenames :: [String]
@@ -225,7 +226,27 @@ eccTester opts (Code _ f) k = do
    k2 <- k opts (map name eccs)
 
    -- First, try replay (which have fixed EbN0s)
-   -- ...
+   replay_log <- case replay opts of
+                   Nothing -> pure []
+                   Just fileName -> do 
+                        str <- readFile fileName
+                        return [ r :: Log
+                               | ln <- lines str
+                               , r <- case readMaybe ln of
+                                        Nothing -> []
+                                        Just x -> [x]
+                               ]
+   let replayMe [] = return ()
+       replayMe (Message m:TxCodeword tx:RxCodeword ebN0 rx:rest) = do
+           sequence_ 
+               [ do bes <- rxECC (verbose opts) ecc m ebN0 rx
+                    k2 ecc ebN0 bes
+               | ecc <- eccs'
+               ]
+           replayMe rest
+       replayMe (_:rest) = replayMe rest
+   
+   replayMe replay_log
    
    -- Then, loop over all given EbN0s.
    sequence_
