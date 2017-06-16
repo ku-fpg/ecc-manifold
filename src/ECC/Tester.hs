@@ -31,6 +31,8 @@ import Data.Map.Strict (Map)
 import Data.List as List
 import Data.Ratio
 import Text.Read
+import Data.Word (Word32)
+import Data.Maybe (isJust)
 
 data Options = Options
         { codenames :: [String]
@@ -40,6 +42,7 @@ data Options = Options
         , logDir    :: FilePath -- directory or file to put the log
         , cmp       :: Bool
         , replay    :: Maybe FilePath -- file to run replays
+        , seed      :: Maybe Word32
         } deriving Show
 
 
@@ -59,7 +62,10 @@ instance Monoid TestRun where
     mempty = TestRun 0 0 mempty
     TestRun en1 de1 ber1 `mappend` TestRun en2 de2 ber2 
         = TestRun (en1 + en2) (de1 + de2) (ber1 `mappend` ber2)
-    
+
+defaultLogDir :: String
+defaultLogDir = "log/"
+
 -- | Give a 'Code' (set of possible Error Correcting Codes) and a printer, run the tests.
 eccMain :: Code -> (Options -> [String] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
 eccMain code k = do
@@ -67,7 +73,7 @@ eccMain code k = do
         if null args
          then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<file or dir/>] [-c] <EbN0_1> <EbN0_2> ... <Code Name> <Code Name>"
                    ++ "\ncodes: " ++ show code
-         else eccTester (parseOptions args $ defaultOptions "log/") code k
+         else eccTester (parseOptions args $ defaultOptions defaultLogDir) code k
 
 parseOptions :: [String] -> Options -> Options
 parseOptions (('-':'v':ns):rest) o
@@ -80,6 +86,8 @@ parseOptions (('-':'l':lg):rest) o
         | otherwise = (parseOptions rest o) { logDir = lg }
 parseOptions (('-':'r':r):rest) o
         | otherwise = (parseOptions rest o) { replay = Just r }
+parseOptions (('-':'s':s):rest) o
+        | otherwise = (parseOptions rest o) { seed = Just (read s) }
 parseOptions ("-c":rest) o
         | otherwise       = (parseOptions rest o) { cmp = True }
 parseOptions (arg:rest) o =
@@ -98,7 +106,8 @@ defaultOptions d = Options {
     enough = BitErrorCount 1000,
     logDir = d,
     cmp = False,
-    replay = Nothing 
+    replay = Nothing,
+    seed = Nothing
   }
 
 -- | A basic printer for our tests. Currently, we report on powers of two,
@@ -124,7 +133,11 @@ eccPrinter opts names = do
      else
        return $ logDir opts 
 
-   writeHeader logFileName
+     -- Don't write to the default log directory if a seed was manually
+     -- provided (to avoid skewing the statistics, if the same seed is
+     -- manually used for a number of runs).
+   unless (logDir opts == defaultLogDir && isJust (seed opts))
+     $ writeHeader logFileName
    
    putStrLn $ "#" ++
               rjust 7    "Time" ++ " " ++
@@ -164,22 +177,24 @@ eccPrinter opts names = do
            hFlush stdout
 
            -- Log file, with raw data
-           LBS.appendFile logFileName $ CSV.encode [ Result
-               ( realToFrac diff :: Double )
-               ( name ecc        :: String )
-               ( ebN0            :: Double ) 
-               ( sizeBEs bes     :: Int ) 
-               ( tEn        )
-               ( tDe        )
-               ( sumBEs bes      :: Int )
-               ( estPoint <$> est )
-               ( (confIntLDX . estError) <$> est )
-               ( (confIntUDX . estError) <$> est )
-               ( (confidenceLevel . confIntCL . estError) <$> est )
-               ( message_length ecc )
-               ( codeword_length ecc )
-               ( bes )
-               ]
+
+           unless (logDir opts == defaultLogDir && isJust (seed opts))
+             $ LBS.appendFile logFileName $ CSV.encode [ Result
+                 ( realToFrac diff :: Double )
+                 ( name ecc        :: String )
+                 ( ebN0            :: Double ) 
+                 ( sizeBEs bes     :: Int ) 
+                 ( tEn        )
+                 ( tDe        )
+                 ( sumBEs bes      :: Int )
+                 ( estPoint <$> est )
+                 ( (confIntLDX . estError) <$> est )
+                 ( (confIntUDX . estError) <$> est )
+                 ( (confidenceLevel . confIntCL . estError) <$> est )
+                 ( message_length ecc )
+                 ( codeword_length ecc )
+                 ( bes )
+                 ]
            return accept
 
 
@@ -191,7 +206,9 @@ eccTester opts (Code _ f) k = do
                    | otherwise  = return ()
 
    -- This generator is uses for the generation of bits
-   gen :: GenIO <- createSystemRandom
+   gen :: GenIO <- case seed opts of
+                     Just s -> initialize (V.singleton s)
+                     _      -> createSystemRandom
 
    let mg :: (Show a, Show b, Eq b, Monad m) => (a -> m b) -> (a -> m b) -> a -> m b
        mg f1 f2 a = do
