@@ -50,7 +50,7 @@ data Enough = BitErrorCount Int
             | MessageCount Int
         deriving Show
 
-data TestRun = TestRun 
+data TestRun = TestRun
        { test_encode_time    :: !Double  -- in seconds
        , test_decode_time    :: !Double -- in seconds
        , test_ber            :: !BEs
@@ -60,7 +60,7 @@ data TestRun = TestRun
 
 instance Monoid TestRun where
     mempty = TestRun 0 0 mempty
-    TestRun en1 de1 ber1 `mappend` TestRun en2 de2 ber2 
+    TestRun en1 de1 ber1 `mappend` TestRun en2 de2 ber2
         = TestRun (en1 + en2) (de1 + de2) (ber1 `mappend` ber2)
 
 defaultLogDir :: String
@@ -99,7 +99,7 @@ parseOptions (arg:rest) o =
 parseOptions [] o = o
 
 defaultOptions :: String -> Options
-defaultOptions d = Options { 
+defaultOptions d = Options {
     codenames = [],
     ebN0s = [],
     verbose = 0,
@@ -126,19 +126,19 @@ eccPrinter opts names = do
 
    (w1,w2,w3,w4) <- uniform gen
    let uuid = UUID.fromWords w1 w2 w3 w4
-    
+
    logFileName <- if last (logDir opts) == '/' then do
        createDirectoryIfMissing True $ logDir opts
        return $ logDir opts ++ UUID.toString uuid
      else
-       return $ logDir opts 
+       return $ logDir opts
 
      -- Don't write to the default log directory if a seed was manually
      -- provided (to avoid skewing the statistics, if the same seed is
      -- manually used for a number of runs).
    unless (logDir opts == defaultLogDir && isJust (seed opts))
      $ writeHeader logFileName
-   
+
    putStrLn $ "#" ++
               rjust 7    "Time" ++ " " ++
               rjust tab1 "ECC" ++ " " ++
@@ -182,8 +182,8 @@ eccPrinter opts names = do
              $ LBS.appendFile logFileName $ CSV.encode [ Result
                  ( realToFrac diff :: Double )
                  ( name ecc        :: String )
-                 ( ebN0            :: Double ) 
-                 ( sizeBEs bes     :: Int ) 
+                 ( ebN0            :: Double )
+                 ( sizeBEs bes     :: Int )
                  ( tEn        )
                  ( tDe        )
                  ( sumBEs bes      :: Int )
@@ -214,15 +214,15 @@ eccTester opts (Code _ f) k = do
        mg f1 f2 a = do
            r1 <- f1 a
            r2 <- f2 a
-           if r1 == r2 
+           if r1 == r2
             then return r1
             else fail $ "merge of two codes failed at runtime" ++ show (a,r1,r2)
 
    let jn :: Monad m => ECC m -> ECC m -> ECC m
-       jn ecc1 ecc2 
-            | message_length ecc1 /= message_length ecc2 
+       jn ecc1 ecc2
+            | message_length ecc1 /= message_length ecc2
              = error "trying to combine two codes with different message lengths"
-            | codeword_length ecc1 /= codeword_length ecc2 
+            | codeword_length ecc1 /= codeword_length ecc2
             = error "trying to combine two codes with different codeword lengths"
             | otherwise
             = ECC { name = name ecc1 ++ "+" ++ name ecc2
@@ -231,7 +231,7 @@ eccTester opts (Code _ f) k = do
                   , message_length = message_length ecc1
                   , codeword_length = codeword_length ecc2
                   }
-       
+
    eccs <- liftM concat
             $ sequence
             $ map f
@@ -245,7 +245,7 @@ eccTester opts (Code _ f) k = do
    -- First, try replay (which have fixed EbN0s)
    replay_log <- case replay opts of
                    Nothing -> pure []
-                   Just fileName -> do 
+                   Just fileName -> do
                         str <- readFile fileName
                         return [ r :: Log
                                | ln <- lines str
@@ -255,16 +255,16 @@ eccTester opts (Code _ f) k = do
                                ]
    let replayMe [] = return ()
        replayMe (Message m:TxCodeword tx:RxCodeword ebN0 rx:rest) = do
-           sequence_ 
+           sequence_
                [ do bes <- rxECC (verbose opts) ecc m ebN0 rx
                     k2 ecc ebN0 bes
                | ecc <- eccs'
                ]
            replayMe rest
        replayMe (_:rest) = replayMe rest
-   
+
    replayMe replay_log
-   
+
    -- Then, loop over all given EbN0s.
    sequence_
           [ sequence_
@@ -330,8 +330,8 @@ runECC verb gen ebN0 ecc = do
   debug 3 $ "tx/rx'd message"
   debug 4 $ show (RxCodeword ebN0 rx)
 
-  rxECC verb ecc mess0 (realToFrac $ diffUTCTime end_encoding start_encoding) rx 
-  
+  rxECC verb ecc mess0 (realToFrac $ diffUTCTime end_encoding start_encoding) rx
+
 rxECC :: Int -> ECC IO -> U.Vector Bool -> Double -> U.Vector Double -> IO TestRun
 rxECC verb ecc mess0 encoding_time rx = do
 
@@ -339,7 +339,7 @@ rxECC verb ecc mess0 encoding_time rx = do
                   | otherwise  = return ()
 
   start_decoding <- getCurrentTime
-  
+
   !(!mess1,parity) <- decode ecc rx
 
   debug 3 $ "decoded message"
@@ -353,9 +353,9 @@ rxECC verb ecc mess0 encoding_time rx = do
   debug 2 $ show bitErrorCount ++ " bit errors in message"
 
   end_decoding <- getCurrentTime
-  
+
   return $ TestRun encoding_time
-                   (realToFrac $ diffUTCTime end_decoding start_decoding) 
+                   (realToFrac $ diffUTCTime end_decoding start_decoding)
          $ eventBEs bitErrorCount
 
 
@@ -390,7 +390,7 @@ txRx_EbN0 ebnoDB rate gen xs
                                 $ xs
 txRx_EbN0 ebnoDB rate gen xs = do
         rs :: U.Vector Double  <- U.fromList <$> sequence [ standard gen | _ <- U.toList xs ]
-        return $ U.map (* lc) 
+        return $ U.map (* lc)
                $ U.zipWith (+) (U.map (* sqrt sigma2) rs)
                                (U.map (* sqrt ec)
                                   $ U.map soft
@@ -410,18 +410,18 @@ eccMerger = do
      then error $ "usage: <name> [-v<n>] [-b<n>] [-m<n>] [-l<file or dir/>] [-c] log/<file> log/<file>"
      else do
        let opts = parseOptions args $ defaultOptions "merge/"
---       print opts   
+--       print opts
        -- now we try load the files.
-       logs <- sequence 
+       logs <- sequence
          [ do bs <- LBS.readFile nm
               case CSV.decode CSV.HasHeader bs of
                 Left msg -> fail msg
                 Right t  -> return $ V.toList $ (t :: V.Vector Result)
          | nm <- codenames opts
          ]
-      
+
        -- first, pick only the final results. We can not merge partual with final results.
-       let sumMe :: Result -> Map String (Map Double Result) -> Map String (Map Double Result) 
+       let sumMe :: Result -> Map String (Map Double Result) -> Map String (Map Double Result)
            sumMe r m = flip (Map.insert (res_name r)) m $
                    case Map.lookup (res_name r) m of
                      Nothing -> Map.singleton (res_ebN0 r) r
@@ -434,7 +434,7 @@ eccMerger = do
        let logs' = map (foldr sumMe Map.empty) logs
        -- next, merge the different runs
        let mergeRes :: Result -> Result -> Result
-           mergeRes r1 r2 = r1 
+           mergeRes r1 r2 = r1
               { timestamp = 0.0
               , res_size = res_size r1 + res_size r2
               , res_tEn  = res_tEn r1 + res_tEn r2
@@ -464,7 +464,7 @@ eccMerger = do
                    ]
                  | (nm,m) <- Map.toList sumLog
                  ]
-       
+
 data Result = Result
  { timestamp  :: Double
  , res_name   :: String
@@ -509,7 +509,7 @@ instance CSV.FromRecord Result where
             n = V.length v
 
 writeHeader :: String -> IO ()
-writeHeader logFileName = 
+writeHeader logFileName =
    LBS.writeFile logFileName $ CSV.encode [
                [ "Time"
                , "ECC"

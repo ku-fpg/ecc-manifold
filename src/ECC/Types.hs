@@ -84,7 +84,7 @@ instance Show Code where
 
 instance Monoid Code where
   mempty = Code [] $ \ _ -> return []
-  mappend (Code c1 f1) (Code c2 f2) = Code (c1 ++ c2) $ \ xs -> liftM2 (++) (f1 xs) (f2 xs)
+  mappend (Code !c1 !f1) (Code !c2 !f2) = Code (c1 ++ c2) $ \ xs -> liftM2 (++) (f1 xs) (f2 xs)
 
 -----------------------------------------------------------------------------
 -- Regarding Bit Errors (BEs)
