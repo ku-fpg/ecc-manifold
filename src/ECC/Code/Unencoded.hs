@@ -17,8 +17,8 @@ mkUnencoded n = ECC
         }
 
 code :: Code
-code = Code ["unencoded/<message-length>"]
-     $ \ xs -> case xs of
+code = Code ["unencoded/<message-length>"] (pure ()) (const (pure ()))
+     $ \ vars xs -> case xs of
                         ["unencoded",n]  | all isDigit n
                                          -> return [mkUnencoded (read n)]  
                         _                -> return []

@@ -33,8 +33,8 @@ mkSoftRepetition n = ECC
 
 
 code :: Code
-code = Code ["repetition/(hard|soft)/<n>"]
-     $ \ xs -> case xs of
+code = Code ["repetition/(hard|soft)/<n>"] (pure ()) (const (pure ()))
+     $ \ vars xs -> case xs of
                         ["repetition","hard",n] | all isDigit n -> return [mkHardRepetition (read n)]
                         ["repetition","soft",n] | all isDigit n -> return [mkSoftRepetition (read n)]
                         _                                -> return []

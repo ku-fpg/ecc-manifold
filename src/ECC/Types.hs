@@ -1,4 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
 module ECC.Types
         ( -- * Types
           ECC(..),
@@ -28,6 +30,7 @@ import Data.List (unfoldr, transpose)
 import Data.Monoid
 import qualified Data.Vector.Unboxed  as U
 import Data.Ratio
+import Control.Arrow
 
 -----------------------------------------------------------------------------
 -- Regarding Common Synomyns
@@ -77,14 +80,19 @@ rateOf ecc = message_length ecc % codeword_length ecc
 -- It has a list/description of possible codes,
 -- and a mapping from expanded code-name (/ is the seperator),
 -- to possible 'EEC's.
-data Code = Code [String] ([String] -> IO [ECC IO])
+data Code = forall vars. Code [String] (IO vars) (vars -> IO ()) (vars -> [String] -> IO [ECC IO])
 
 instance Show Code where
-        show (Code codes _) = show codes
+        show (Code codes _ _ _) = show codes
 
 instance Monoid Code where
-  mempty = Code [] $ \ _ -> return []
-  mappend (Code !c1 !f1) (Code !c2 !f2) = Code (c1 ++ c2) $ \ xs -> liftM2 (++) (f1 xs) (f2 xs)
+  mempty = Code [] (return ()) (const (return ())) $ \ _ _ -> return []
+  mappend (Code !c1 !init1 !finalize1 !f1) (Code !c2 !init2 !finalize2 !f2) =
+    Code (c1 ++ c2)
+         (liftM2 (,) init1 init2)
+         (\ !(vars1, vars2) -> finalize1 vars1 *> finalize2 vars2)
+         $ \ !(vars1, vars2) xs ->
+            liftM2 (++) (f1 vars1 xs) (f2 vars2 xs)
 
 -----------------------------------------------------------------------------
 -- Regarding Bit Errors (BEs)

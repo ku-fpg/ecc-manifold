@@ -200,7 +200,7 @@ eccPrinter opts names = do
 
 -- eccTester runs testECC at different ebN0 levels.
 eccTester :: Options -> Code -> (Options -> [String] -> IO (ECC IO -> EbN0 -> TestRun -> IO Bool)) -> IO ()
-eccTester opts (Code _ f) k = do
+eccTester opts (Code _ initializeC finalizeC f) k = do
    print opts
    let debug n msg | n <= verbose opts  = putStrLn msg
                    | otherwise  = return ()
@@ -232,9 +232,11 @@ eccTester opts (Code _ f) k = do
                   , codeword_length = codeword_length ecc2
                   }
 
+   vars <- initializeC
+
    eccs <- liftM concat
             $ sequence
-            $ map f
+            $ map (f vars)
             $ map splitCodename
             $ codenames opts
 
@@ -273,6 +275,9 @@ eccTester opts (Code _ f) k = do
                 ]
           | ecc <- eccs'
           ]
+
+   finalizeC vars
+
    stopGlobalPool -- TODO: use a local pool instead?
 
 -- Running a *multi* run of an ECC, giving a compounted TestRun result to the

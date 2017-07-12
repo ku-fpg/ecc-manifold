@@ -33,7 +33,7 @@ punctureTail n ecc = (punctureECC (< (codeword_length ecc - n)) ecc) { name = na
 
 -- | This adds the ability to puncture code, using the '/.128' syntax
 punctureTailOfCode :: Code -> Code
-punctureTailOfCode (Code nm f) = Code nm $ \ names ->
+punctureTailOfCode (Code nm initialize finalize f) = Code nm initialize finalize $ \ vars names ->
         case last names of
-          '.':ns | all isDigit ns -> fmap (fmap (punctureTail (read ns))) $ f (init names)
-          _ -> f names
+          '.':ns | all isDigit ns -> fmap (fmap (punctureTail (read ns))) $ f vars (init names)
+          _ -> f vars names
