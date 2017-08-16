@@ -313,7 +313,7 @@ splitCodename = words . map (\ c -> if c == '/' then ' ' else c)
 
 -- Running a *single* run of an ECC, getting a single bit error count
 runECC :: Int -> GenIO -> EbN0 -> ECC IO -> IO TestRun
-runECC verb gen ebN0 ecc = do
+runECC verb gen ebN0 !ecc = do
 
   let debug n msg | n <= verb  = putStrLn msg
                   | otherwise  = return ()
